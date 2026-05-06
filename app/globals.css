@@ -378,51 +378,69 @@ a{color:var(--accent);text-decoration:none}
 .detail-panel .detail-sources{margin:0 20px 12px}
 .detail-panel .detail-order{padding:12px 20px 16px}
 
-/* AI badge */
+/* AI badge — discount tag style */
 .ai-badge-large {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px 3px 8px;
-  border-radius: 99px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  gap: 0;
+  padding: 5px 10px 4px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
-.ai-badge-large .mini-bar {
-  width: 32px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-  overflow: hidden;
-  position: relative;
+.ai-badge-large.yes-edge {
+  background: color-mix(in oklch, var(--green) 8%, var(--bg));
+  border-color: color-mix(in oklch, var(--green) 20%, transparent);
 }
-.ai-badge-large .mini-bar .fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width .3s;
+.ai-badge-large.no-edge {
+  background: color-mix(in oklch, var(--red) 8%, var(--bg));
+  border-color: color-mix(in oklch, var(--red) 20%, transparent);
 }
-.ai-badge-large .mini-bar .fill.pos { background: var(--green); }
-.ai-badge-large .mini-bar .fill.neg { background: var(--red); }
-.ai-badge-large .mini-bar .fill.neu { background: var(--yellow); }
-.ai-badge-large .pct {
-  font-size: 13px;
-  font-weight: 700;
+.ai-market-strike {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: line-through;
   font-variant-numeric: tabular-nums;
+  line-height: 1.3;
 }
-.ai-badge-large .pct.pos { color: var(--green); }
-.ai-badge-large .pct.neg { color: var(--red); }
-.ai-badge-large .pct.neu { color: var(--yellow); }
-.ai-badge-large .label {
-  font-size: 8px;
+.ai-main-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: -1px 0;
+}
+.ai-pct {
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.ai-pct.pos { color: var(--green); }
+.ai-pct.neg { color: var(--red); }
+.ai-pct.neu { color: var(--accent); }
+.ai-badge-label {
+  font-size: 7px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   font-weight: 600;
 }
+.ai-edge-label {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+.ai-edge-label.pos { color: var(--green); }
+.ai-edge-label.neg { color: var(--red); }
 
 /* Market title */
 .mkt-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 17px;
   font-weight: 620;
   line-height: 1.3;
@@ -433,7 +451,18 @@ a{color:var(--accent);text-decoration:none}
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+  transition: color .15s;
 }
+.mkt-title:hover { color: var(--accent); }
+.mkt-title-arrow {
+  font-size: 14px;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity .15s, transform .15s;
+}
+.mkt-card:hover .mkt-title-arrow { opacity: 0.4; }
+.mkt-title:hover .mkt-title-arrow { opacity: 1; transform: translateX(2px); }
 
 /* Divergence gauge */
 .divergence {
@@ -529,32 +558,38 @@ a{color:var(--accent);text-decoration:none}
 }
 .mkt-footer .ev strong { color: var(--fg); }
 .mkt-buy {
-  padding: 3px 12px;
+  padding: 5px 16px;
   border-radius: 99px;
   border: 1px solid;
   font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 650;
   cursor: pointer;
-  background: transparent;
-  transition: all .15s;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  transition: all .2s;
+  white-space: nowrap;
 }
 .mkt-buy.yes {
-  color: var(--green);
-  border-color: color-mix(in oklch, var(--green) 30%, transparent);
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 1px 4px color-mix(in oklch, var(--green) 25%, transparent);
 }
-.mkt-buy.yes:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.mkt-buy.yes:hover { background: oklch(48% 0.16 145); border-color: oklch(48% 0.16 145); box-shadow: 0 2px 8px color-mix(in oklch, var(--green) 35%, transparent); transform: translateY(-1px); }
 .mkt-buy.no {
-  color: var(--red);
-  border-color: color-mix(in oklch, var(--red) 30%, transparent);
+  color: #fff;
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: 0 1px 4px color-mix(in oklch, var(--red) 25%, transparent);
 }
-.mkt-buy.no:hover { background: var(--red); color: #fff; border-color: var(--red); }
+.mkt-buy.no:hover { background: oklch(43% 0.17 25); border-color: oklch(43% 0.17 25); box-shadow: 0 2px 8px color-mix(in oklch, var(--red) 35%, transparent); transform: translateY(-1px); }
 .mkt-buy.neu {
-  color: var(--accent);
-  border-color: color-mix(in oklch, var(--accent) 30%, transparent);
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 1px 4px color-mix(in oklch, var(--accent) 25%, transparent);
 }
-.mkt-buy.neu:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.mkt-buy.neu:hover { opacity: 0.85; transform: translateY(-1px); box-shadow: 0 2px 8px color-mix(in oklch, var(--accent) 35%, transparent); }
 
 /* Detail page styles (standalone /markets/[id]) */
 .detail-page {

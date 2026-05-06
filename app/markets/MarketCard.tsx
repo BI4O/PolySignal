@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { Market } from '@/data/types';
 import { useLanguage } from '@/lib/LanguageProvider';
 
@@ -29,19 +30,25 @@ export default function MarketCard({ market, isSelected, onSelect }: {
             </span>
           )}
         </div>
-        <div className="ai-badge-large">
-          <div className="mini-bar">
-            <div className={`fill ${market.aiConfLevel === 'high' ? 'pos' : market.aiConfLevel === 'low' ? 'neg' : 'neu'}`}
-                 style={{width: `${market.aiConf}%`}} />
+        <div className={`ai-badge-large ${isYesEdge ? 'yes-edge' : 'no-edge'}`}>
+          <div className="ai-market-strike">{market.price}¢</div>
+          <div className="ai-main-row">
+            <span className={`ai-pct ${market.aiConfLevel === 'high' ? 'pos' : market.aiConfLevel === 'low' ? 'neg' : 'neu'}`}>
+              {market.aiConf}%
+            </span>
+            <span className="ai-badge-label">AI</span>
           </div>
-          <span className={`pct ${market.aiConfLevel === 'high' ? 'pos' : market.aiConfLevel === 'low' ? 'neg' : 'neu'}`}>
-            {market.aiConf}%
+          <span className={`ai-edge-label ${isYesEdge ? 'pos' : 'neg'}`}>
+            {isYesEdge ? '+' : ''}{edgePts}pt
           </span>
-          <span className="label">AI</span>
         </div>
       </div>
 
-      <div className="mkt-title">{t.marketNames[market.id as keyof typeof t.marketNames] || market.name}</div>
+      <Link href={`/markets/${market.id}`} className="mkt-title"
+            onClick={(e) => e.stopPropagation()}>
+        {t.marketNames[market.id as keyof typeof t.marketNames] || market.name}
+        <span className="mkt-title-arrow">→</span>
+      </Link>
 
       <div className="divergence">
         <div className="divergence-track">
@@ -69,7 +76,7 @@ export default function MarketCard({ market, isSelected, onSelect }: {
         </span>
         <button className={`mkt-buy ${isYesEdge ? 'yes' : 'no'}`}
                 onClick={(e) => { e.stopPropagation(); onSelect(market.id); }}>
-          {t.markets.buy} {isYesEdge ? 'YES' : 'NO'}
+          {t.markets.buy} {isYesEdge ? 'YES ↑' : 'NO ↓'}
         </button>
       </div>
     </div>

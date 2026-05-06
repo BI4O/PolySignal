@@ -2,28 +2,30 @@
 
 import { useState } from 'react';
 import { HOLDINGS, TRADES } from '@/data/markets';
+import { useLanguage } from '@/lib/LanguageProvider';
 import type { Holding, Trade } from '@/data/types';
 
 type MeTab = 'positions' | 'history' | 'settings';
 
 export default function MePage() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<MeTab>('positions');
 
   return (
     <div className="me-page">
       {/* Stat cards */}
       <div className="stat-row">
-        <StatCard label="Total P&L" value="+$4,283.50" valueColor="green" sub="Since first trade" />
-        <StatCard label="Trades" value="147" sub="99 won · 48 lost" />
-        <StatCard label="Win Rate" value="67.3%" sub="Last 30d: 71.4%" />
-        <StatCard label="Active Positions" value="3" sub="$2,840 at stake" />
+        <StatCard label={t.me.totalPnl} value="+$4,283.50" valueColor="green" sub={t.me.sinceFirstTrade} />
+        <StatCard label={t.me.trades} value="147" sub="99 won · 48 lost" />
+        <StatCard label={t.me.winRate} value="67.3%" sub="Last 30d: 71.4%" />
+        <StatCard label={t.me.activePositions} value="3" sub={`$2,840 ${t.me.atStake}`} />
       </div>
 
       {/* Tab bar */}
       <div className="me-tabbar">
-        <TabButton label="Positions" isActive={activeTab === 'positions'} onClick={() => setActiveTab('positions')} />
-        <TabButton label="History" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-        <TabButton label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+        <TabButton label={t.me.positions} isActive={activeTab === 'positions'} onClick={() => setActiveTab('positions')} />
+        <TabButton label={t.me.history} isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+        <TabButton label={t.me.settings} isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
       </div>
 
       {/* Positions */}
@@ -32,27 +34,27 @@ export default function MePage() {
           <div className="me-tab-scroll">
             <div className="me-section">
               <div className="me-section-header">
-                <h3>Current Holdings</h3>
-                <span className="count-badge">{HOLDINGS.length} positions</span>
+                <h3>{t.me.currentHoldings}</h3>
+                <span className="count-badge">{HOLDINGS.length} {t.me.positions}</span>
               </div>
               <div className="me-section-body">
                 <table className="hold-table">
                   <thead>
                     <tr>
-                      <th>Market</th>
-                      <th className="th-center">Side</th>
-                      <th className="num">Entry</th>
-                      <th className="num">Current</th>
-                      <th className="num">Contracts</th>
-                      <th className="num">Staked</th>
-                      <th className="num">P&amp;L</th>
-                      <th className="th-center">AI@Entry</th>
-                      <th>Status</th>
+                      <th>{t.me.market}</th>
+                      <th className="th-center">{t.me.side}</th>
+                      <th className="num">{t.me.entry}</th>
+                      <th className="num">{t.me.current}</th>
+                      <th className="num">{t.me.contracts}</th>
+                      <th className="num">{t.me.staked}</th>
+                      <th className="num">{t.me.pnl}</th>
+                      <th className="th-center">{t.me.aiAtEntry}</th>
+                      <th>{t.me.status}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {HOLDINGS.map((h, i) => (
-                      <HoldingRow key={i} holding={h} />
+                      <HoldingRow key={i} holding={h} t={t} idx={i} />
                     ))}
                   </tbody>
                 </table>
@@ -68,26 +70,26 @@ export default function MePage() {
           <div className="me-tab-scroll">
             <div className="me-section">
               <div className="me-section-header">
-                <h3>Trade History</h3>
-                <span className="count-badge">Last {TRADES.length} trades</span>
+                <h3>{t.me.tradeHistory}</h3>
+                <span className="count-badge">{t.me.last} {TRADES.length} {t.me.trades}</span>
               </div>
               <div className="me-section-body">
                 <table className="hold-table">
                   <thead>
                     <tr>
-                      <th>Market</th>
-                      <th className="th-center">Side</th>
-                      <th className="num">Entry</th>
-                      <th className="num">Exit</th>
-                      <th className="num">Contracts</th>
-                      <th className="num">P&amp;L</th>
-                      <th className="th-center">AI@Entry</th>
-                      <th>Result</th>
+                      <th>{t.me.market}</th>
+                      <th className="th-center">{t.me.side}</th>
+                      <th className="num">{t.me.entry}</th>
+                      <th className="num">{t.me.exit}</th>
+                      <th className="num">{t.me.contracts}</th>
+                      <th className="num">{t.me.pnl}</th>
+                      <th className="th-center">{t.me.aiAtEntry}</th>
+                      <th>{t.me.result}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {TRADES.map((t, i) => (
-                      <TradeRow key={i} trade={t} />
+                    {TRADES.map((tr, i) => (
+                      <TradeRow key={i} trade={tr} t={t} idx={i} />
                     ))}
                   </tbody>
                 </table>
@@ -102,7 +104,7 @@ export default function MePage() {
         <div className="me-tab-content active">
           <div className="me-tab-scroll">
             <div className="me-section acc-settings">
-              <SettingsAccordion />
+              <SettingsAccordion t={t} />
             </div>
           </div>
         </div>
@@ -131,14 +133,18 @@ function TabButton({ label, isActive, onClick }: { label: string; isActive: bool
   );
 }
 
-function HoldingRow({ holding }: { holding: Holding }) {
+const HOLDING_TRANS_KEYS = ['h1', 'h2', 'h3'] as const;
+const TRADE_TRANS_KEYS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
+
+function HoldingRow({ holding, t: trans, idx }: { holding: Holding; t: any; idx: number }) {
   const aiColor = holding.aiAtEntry >= 80 ? 'var(--green)' : holding.aiAtEntry >= 60 ? 'var(--yellow)' : 'var(--blue)';
+  const hk = HOLDING_TRANS_KEYS[idx] || 'h1';
   return (
     <tr>
       <td>
         <div className="market-cell">
-          <span className="mkt-name">{holding.marketName}</span>
-          <span className="mkt-meta">{holding.marketMeta}</span>
+          <span className="mkt-name">{trans.holdings[`${hk}_name`] || holding.marketName}</span>
+          <span className="mkt-meta">{trans.holdings[`${hk}_meta`] || holding.marketMeta}</span>
         </div>
       </td>
       <td className="td-center" style={{color: holding.side === 'YES' ? 'var(--green)' : 'var(--red)', fontWeight: 600, fontSize: 11}}>{holding.side}</td>
@@ -150,19 +156,20 @@ function HoldingRow({ holding }: { holding: Holding }) {
         {holding.pnl === null ? '—' : `${holding.pnl >= 0 ? '+' : ''}$${holding.pnl.toFixed(2)}`}
       </td>
       <td className="ai-conf-cell" style={{color: aiColor}}>{holding.aiAtEntry}%</td>
-      <td><span className="status-pill open">Open</span></td>
+      <td><span className="status-pill open">{trans.me.open}</span></td>
     </tr>
   );
 }
 
-function TradeRow({ trade }: { trade: Trade }) {
+function TradeRow({ trade, t: trans, idx }: { trade: Trade; t: any; idx: number }) {
   const aiColor = trade.aiAtEntry >= 80 ? 'var(--green)' : trade.aiAtEntry >= 60 ? 'var(--yellow)' : 'var(--blue)';
+  const tk = TRADE_TRANS_KEYS[idx] || 't1';
   return (
     <tr>
       <td>
         <div className="market-cell">
-          <span className="mkt-name">{trade.marketName}</span>
-          <span className="mkt-meta">{trade.marketMeta}</span>
+          <span className="mkt-name">{trans.trades[`${tk}_name`] || trade.marketName}</span>
+          <span className="mkt-meta">{trans.trades[`${tk}_meta`] || trade.marketMeta}</span>
         </div>
       </td>
       <td className="td-center" style={{color: trade.side === 'YES' ? 'var(--green)' : 'var(--red)', fontWeight: 600, fontSize: 11}}>{trade.side}</td>
@@ -171,57 +178,57 @@ function TradeRow({ trade }: { trade: Trade }) {
       <td className="num">{trade.contracts}</td>
       <td className={`pnl ${trade.pnl >= 0 ? 'pos' : 'neg'}`}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</td>
       <td className="ai-conf-cell" style={{color: aiColor}}>{trade.aiAtEntry}%</td>
-      <td><span className={`status-pill ${trade.result === 'Won' ? 'won' : 'lost'}`}>{trade.result}</span></td>
+      <td><span className={`status-pill ${trade.result === 'Won' ? 'won' : 'lost'}`}>{trade.result === 'Won' ? trans.me.won : trans.me.lost}</span></td>
     </tr>
   );
 }
 
-function SettingsAccordion() {
+function SettingsAccordion({ t: trans }: { t: any }) {
   const [open, setOpen] = useState(true);
 
   return (
     <>
       <div className={`acc-header ${open ? 'open' : ''}`} onClick={() => setOpen(!open)}>
-        <h3>Account Settings</h3>
+        <h3>{trans.me.accountSettings}</h3>
         <span className="arrow">▶</span>
       </div>
       <div className={`acc-body ${open ? 'open' : ''}`}>
         <div className="acc-row">
           <div>
-            <div className="acc-label">Polymarket CLOB API</div>
-            <div className="acc-desc">Connect your API key to enable real trading</div>
+            <div className="acc-label">{trans.me.polymarketApi}</div>
+            <div className="acc-desc">{trans.me.polymarketApiDesc}</div>
           </div>
           <div className="acc-action">
-            <span className="acc-btn connected">Connected</span>
+            <span className="acc-btn connected">{trans.me.connected}</span>
           </div>
         </div>
         <div className="acc-row">
           <div>
-            <div className="acc-label">Notifications</div>
-            <div className="acc-desc">Get alerted 1h before market expiry</div>
+            <div className="acc-label">{trans.me.notifications}</div>
+            <div className="acc-desc">{trans.me.notificationsDesc}</div>
           </div>
           <div className="acc-action">
-            <span className="acc-btn" onClick={() => alert('Notification preferences coming soon')}>Configure</span>
+            <span className="acc-btn" onClick={() => alert(trans.me.comingSoon)}>{trans.me.configure}</span>
           </div>
         </div>
         <div className="acc-row">
           <div>
-            <div className="acc-label">Default order size</div>
-            <div className="acc-desc">Default contracts per quick order</div>
+            <div className="acc-label">{trans.me.defaultOrderSize}</div>
+            <div className="acc-desc">{trans.me.defaultOrderSizeDesc}</div>
           </div>
           <div className="acc-action" style={{display:'flex',alignItems:'center',gap:8}}>
             <input type="number" defaultValue={10} min={1}
                    style={{width:64,padding:'4px 8px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg)',fontFamily:'var(--font-body)',fontSize:13,textAlign:'center'}} />
-            <span style={{fontSize:11,color:'var(--muted)'}}>ct</span>
+            <span style={{fontSize:11,color:'var(--muted)'}}>{trans.me.ct}</span>
           </div>
         </div>
         <div className="acc-row">
           <div>
-            <div className="acc-label">Display preference</div>
-            <div className="acc-desc">Dark mode coming soon</div>
+            <div className="acc-label">{trans.me.displayPref}</div>
+            <div className="acc-desc">{trans.me.displayPrefDesc}</div>
           </div>
           <div className="acc-action">
-            <span className="acc-btn" style={{opacity:0.5}}>Light</span>
+            <span className="acc-btn" style={{opacity:0.5}}>{trans.me.light}</span>
           </div>
         </div>
       </div>

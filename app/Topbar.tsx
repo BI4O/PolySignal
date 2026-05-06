@@ -1,21 +1,41 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-const NAV_ITEMS = [
-  { href: '/markets', label: 'Markets' },
-  { href: '/aipicks', label: 'AI Picks' },
-  { href: '/me', label: 'Me' },
-];
+import { useLanguage } from '@/lib/LanguageProvider';
+import type { Lang } from '@/data/translations';
 
 export default function Topbar() {
+  const { lang, setLang, t } = useLanguage();
   const pathname = usePathname();
+
+  const NAV_ITEMS = [
+    { href: '/markets', label: t.nav.markets },
+    { href: '/aipicks', label: t.nav.aiPicks },
+    { href: '/me', label: t.nav.me },
+  ];
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (href: string) => {
     if (href === '/markets') return pathname.startsWith('/markets');
     return pathname === href;
   };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClick);
+    }
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [dropdownOpen]);
 
   return (
     <header className="topbar">
@@ -36,9 +56,117 @@ export default function Topbar() {
           </Link>
         ))}
       </nav>
-      <div className="topbar-right">
-        <span className="topbar-balance">Balance <strong>$12,430</strong></span>
-        <div className="topbar-avatar">B</div>
+      <div className="topbar-right" ref={dropdownRef}>
+        <span className="topbar-balance">{t.topbar.balance} <strong>$12,430</strong></span>
+        <div className="topbar-avatar" onClick={() => setDropdownOpen(!dropdownOpen)} style={{ cursor: 'pointer' }}>
+          B
+        </div>
+
+        {dropdownOpen && (
+          <div className="avatar-dropdown">
+            {/* User info */}
+            <div className="ad-header">
+              <div className="ad-avatar">B</div>
+              <div>
+                <div className="ad-name">Builder</div>
+                <div className="ad-email">builder@polymarket.com</div>
+              </div>
+            </div>
+            <div className="ad-stats">
+              <div className="ad-stat">
+                <span className="ad-stat-label">{t.topbar.balance}</span>
+                <span className="ad-stat-value">$12,430</span>
+              </div>
+              <div className="ad-stat">
+                <span className="ad-stat-label">{t.me.totalPnl}</span>
+                <span className="ad-stat-value green">+$4,283.50</span>
+              </div>
+              <div className="ad-stat">
+                <span className="ad-stat-label">{t.me.positions}</span>
+                <span className="ad-stat-value">3</span>
+              </div>
+              <div className="ad-stat">
+                <span className="ad-stat-label">{t.me.winRate}</span>
+                <span className="ad-stat-value">67.3%</span>
+              </div>
+            </div>
+
+            <div className="ad-divider" />
+
+            {/* Language selector */}
+            <div className="ad-lang-row">
+              <span className="ad-lang-label">{t.topbar.language}</span>
+              <select
+                className="ad-lang-select"
+                value={lang}
+                onChange={(e) => setLang(e.target.value as Lang)}
+              >
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+              </select>
+            </div>
+
+            {/* Design tweaks toggle */}
+            <button className="ad-tweaks-toggle" onClick={() => setTweaksOpen(!tweaksOpen)}>
+              {t.dropdown.designTweaks}
+              <span className={`ad-arrow ${tweaksOpen ? 'open' : ''}`}>▶</span>
+            </button>
+
+            {tweaksOpen && (
+              <div className="ad-tweaks-body">
+                <div className="tweak-row">
+                  <label>{t.dropdown.accentHue}</label>
+                  <input type="range" min="0" max="360" defaultValue={28}
+                         onChange={(e) => {
+                           document.documentElement.style.setProperty('--accent', `oklch(64% 0.13 ${e.target.value})`);
+                         }} />
+                </div>
+                <div className="tweak-row">
+                  <label>{t.dropdown.radius}</label>
+                  <select defaultValue="12px"
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            document.documentElement.style.setProperty('--radius-sm', v === '20px' ? '12px' : '8px');
+                            document.documentElement.style.setProperty('--radius-md', v);
+                            document.documentElement.style.setProperty('--radius-lg', v === '20px' ? '24px' : '16px');
+                          }}>
+                    <option value="8px">{t.dropdown.sharp}</option>
+                    <option value="12px">{t.dropdown.default}</option>
+                    <option value="20px">{t.dropdown.rounded}</option>
+                  </select>
+                </div>
+                <div className="tweak-row">
+                  <label>{t.dropdown.font}</label>
+                  <select defaultValue="14px"
+                          onChange={(e) => { document.body.style.fontSize = e.target.value; }}>
+                    <option value="13px">{t.dropdown.compact}</option>
+                    <option value="14px">{t.dropdown.normal}</option>
+                    <option value="15px">{t.dropdown.relaxed}</option>
+                  </select>
+                </div>
+                <div className="tweak-row">
+                  <label>{t.dropdown.cards}</label>
+                  <select defaultValue="border"
+                          onChange={(e) => {
+                            const cards = document.querySelectorAll('.mkt-card, .ai-pick-card');
+                            cards.forEach(c => {
+                              if (e.target.value === 'shadow') {
+                                (c as HTMLElement).style.boxShadow = '0 2px 12px rgba(0,0,0,.06)';
+                                (c as HTMLElement).style.borderColor = 'transparent';
+                              } else {
+                                (c as HTMLElement).style.boxShadow = 'none';
+                                (c as HTMLElement).style.borderColor = 'var(--border)';
+                              }
+                            });
+                          }}>
+                    <option value="border">{t.dropdown.bordered}</option>
+                    <option value="shadow">{t.dropdown.shadow}</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

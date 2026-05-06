@@ -1,12 +1,14 @@
 'use client';
 
 import type { Market } from '@/data/types';
+import { useLanguage } from '@/lib/LanguageProvider';
 
 export default function MarketCard({ market, isSelected, onSelect }: {
   market: Market;
   isSelected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useLanguage();
   const edgePts = Math.abs(market.price - market.aiConf);
   const isYesEdge = market.edgeDir === 'yes';
 
@@ -39,7 +41,7 @@ export default function MarketCard({ market, isSelected, onSelect }: {
         </div>
       </div>
 
-      <div className="mkt-title">{market.name}</div>
+      <div className="mkt-title">{t.marketNames[market.id as keyof typeof t.marketNames] || market.name}</div>
 
       <div className="divergence">
         <div className="divergence-track">
@@ -54,7 +56,7 @@ export default function MarketCard({ market, isSelected, onSelect }: {
         <div className="divergence-meta">
           <span className="dv mkt-dv">{market.price}¢</span>
           <span className={`divergence-edge ${isYesEdge ? 'pos' : 'neg'}`}>
-            {isYesEdge ? '+' : ''}{edgePts}pt <small>edge{!isYesEdge ? ' · NO' : ''}</small>
+            {isYesEdge ? '+' : ''}{edgePts}pt <small>{t.markets.edge}{!isYesEdge ? ` · ${t.markets.onNo}` : ''}</small>
           </span>
           <span className={`dv ai-dv ${!isYesEdge ? 'neg' : ''}`}>{market.aiConf}%</span>
         </div>
@@ -62,12 +64,12 @@ export default function MarketCard({ market, isSelected, onSelect }: {
 
       <div className="mkt-footer">
         <span className="ev">
-          EV <strong>${(edgePts * 0.1).toFixed(2)}</strong>
-          {!isYesEdge ? ' / 10ct on NO' : ' / 10ct'}
+          {t.markets.ev} <strong>${(edgePts * 0.1).toFixed(2)}</strong>
+          {!isYesEdge ? `${t.markets.per10ct} ${t.markets.onNo}` : t.markets.per10ct}
         </span>
         <button className={`mkt-buy ${isYesEdge ? 'yes' : 'no'}`}
                 onClick={(e) => { e.stopPropagation(); onSelect(market.id); }}>
-          Buy {isYesEdge ? 'YES' : 'NO'}
+          {t.markets.buy} {isYesEdge ? 'YES' : 'NO'}
         </button>
       </div>
     </div>

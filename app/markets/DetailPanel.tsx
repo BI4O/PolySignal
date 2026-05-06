@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import type { Market } from '@/data/types';
+import { useLanguage } from '@/lib/LanguageProvider';
 
 export default function DetailPanel({ market }: { market: Market | null }) {
+  const { t } = useLanguage();
+
   if (!market) {
     return (
       <div className="detail-panel empty">
-        Select a market to view details
+        {t.markets.selectMarket}
       </div>
     );
   }
@@ -30,23 +33,23 @@ export default function DetailPanel({ market }: { market: Market | null }) {
     <div className="detail-panel">
       <div className="detail-header">
         <div className="eyebrow">{market.category}</div>
-        <h2>{market.name}</h2>
-        <div className="expiry">Expires {market.expiry}</div>
+        <h2>{t.marketNames[market.id as keyof typeof t.marketNames] || market.name}</h2>
+        <div className="expiry">{t.detail.expires} {market.expiry}</div>
       </div>
 
       <div className="detail-price-row">
         <div>
-          <div className="label">Bid</div>
+          <div className="label">{t.detail.bid}</div>
           <div className="value green">{market.bid}¢</div>
           <div className="size">{market.bidSize}</div>
         </div>
         <div>
-          <div className="label">Last</div>
+          <div className="label">{t.detail.last}</div>
           <div className="value" style={{color: priceColor}}>{market.last}¢</div>
           <div className="size">{market.side}</div>
         </div>
         <div>
-          <div className="label">Ask</div>
+          <div className="label">{t.detail.ask}</div>
           <div className="value red">{market.ask}¢</div>
           <div className="size">{market.askSize}</div>
         </div>
@@ -60,25 +63,25 @@ export default function DetailPanel({ market }: { market: Market | null }) {
           ))}
         </div>
         <div className="chart-labels">
-          <span>1h ago</span>
-          <span>Now</span>
+          <span>{t.detail.chart1hAgo}</span>
+          <span>{t.detail.chartNow}</span>
         </div>
       </div>
 
       <div className="detail-scroll">
         <div className="detail-ai-box">
-          <div className="label">AI Analysis</div>
+          <div className="label">{t.detail.aiAnalysis}</div>
           <div className={`ai-content ${aiExpanded ? '' : 'collapsed'}`}>
-            {market.aiReason}
+            {t.aiReasons[market.id as keyof typeof t.aiReasons] || market.aiReason}
           </div>
           <button className="ai-toggle" onClick={() => setAiExpanded(!aiExpanded)}>
-            {aiExpanded ? 'Show less' : 'Read more'}
+            {aiExpanded ? t.detail.showLess : t.detail.readMore}
           </button>
           <div className="factors">
             {market.factors.map((f, i) => (
               <div key={i} className="factor">
                 <span className={`sig ${f.signal}`}></span>
-                <span>{f.text}</span>
+                <span>{((t.marketFactors as any)[market.id] || [])[i] || f.text}</span>
               </div>
             ))}
           </div>
@@ -86,7 +89,7 @@ export default function DetailPanel({ market }: { market: Market | null }) {
 
         {market.sources && market.sources.length > 0 && (
           <div className="detail-sources">
-            <div className="label">Sources / Evidence</div>
+            <div className="label">{t.detail.sources}</div>
             {market.sources.map((s, i) => (
               <div key={i} className="src-accordion">
                 <div className={`src-accordion-header ${openSources.has(i) ? 'open' : ''}`}
@@ -95,14 +98,14 @@ export default function DetailPanel({ market }: { market: Market | null }) {
                     <span className="src-pub">{s.pub}</span>
                     <span className="src-date">{s.date}</span>
                     <span className={`src-tag ${s.tag}`}>
-                      {s.tag === 'support' ? 'SUPPORTS AI' : s.tag === 'against' ? 'CAVEAT' : 'NEUTRAL'}
+                      {s.tag === 'support' ? t.detail.supportsAi : s.tag === 'against' ? t.detail.caveat : t.detail.neutral}
                     </span>
                   </div>
                   <span className="arrow">▶</span>
                 </div>
                 <div className={`src-accordion-body ${openSources.has(i) ? 'open' : ''}`}>
-                  <div className="src-headline">{s.headline}</div>
-                  <div className="src-snippet">{s.snippet}</div>
+                  <div className="src-headline">{(t.sourceHeadlines as any)[market.id + '_' + i] || s.headline}</div>
+                  <div className="src-snippet">{(t.sourceSnippets as any)[market.id + '_' + i] || s.snippet}</div>
                 </div>
               </div>
             ))}
@@ -111,7 +114,7 @@ export default function DetailPanel({ market }: { market: Market | null }) {
       </div>
 
       <div className="detail-order">
-        <label>Quick order</label>
+        <label>{t.detail.quickOrder}</label>
         <div className="order-row">
           <button className={`order-btn yes ${selectedSide === 'yes' ? 'active' : ''}`}
                   onClick={() => setSelectedSide('yes')}>YES</button>
@@ -119,11 +122,11 @@ export default function DetailPanel({ market }: { market: Market | null }) {
                   onClick={() => setSelectedSide('no')}>NO</button>
         </div>
         <div className="order-row">
-          <input type="number" className="order-input" placeholder="Contracts" defaultValue={10} min={1} />
-          <input type="number" className="order-input" placeholder="Price (¢)" defaultValue={market.price} min={1} max={99} />
+          <input type="number" className="order-input" placeholder={t.detail.contracts} defaultValue={10} min={1} />
+          <input type="number" className="order-input" placeholder={t.detail.priceCents} defaultValue={market.price} min={1} max={99} />
         </div>
         <button className="order-submit">
-          Place order ({selectedSide.toUpperCase()})
+          {t.detail.placeOrder} ({selectedSide.toUpperCase()})
         </button>
       </div>
     </div>

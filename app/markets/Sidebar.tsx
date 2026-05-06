@@ -2,23 +2,46 @@
 
 import Link from 'next/link';
 import { CATEGORIES } from '@/data/markets';
+import { useLanguage } from '@/lib/LanguageProvider';
+
+function pickName(marketId: string, t: any): string {
+  const map: Record<string, string> = {
+    m1: t.aiPicks.yes1_name,
+    m2: t.aiPicks.yes2_name,
+    m3: t.aiPicks.no1_name,
+    m5: t.aiPicks.no2_name,
+  };
+  return map[marketId] || '';
+}
+
+function pickMeta(marketId: string, t: any): string {
+  const map: Record<string, string> = {
+    m1: t.aiPicks.yes1_meta,
+    m2: t.aiPicks.yes2_meta,
+    m3: t.aiPicks.no1_meta,
+    m5: t.aiPicks.no2_meta,
+  };
+  return map[marketId] || '';
+}
 
 const YES_EDGE_PICKS = [
-  { marketId: 'm1', rank: 1, name: 'BTC above $108K by May 10', meta: '4d · 67¢ → AI 87%', conf: 87, confClass: 'high' },
-  { marketId: 'm2', rank: 2, name: 'Fed rate cut at May FOMC', meta: '6d · 32¢ → AI 68%', conf: 68, confClass: 'high' },
+  { marketId: 'm1', rank: 1, conf: 87, confClass: 'high' as const },
+  { marketId: 'm2', rank: 2, conf: 68, confClass: 'high' as const },
 ];
 const NO_EDGE_PICKS = [
-  { marketId: 'm3', rank: 1, name: 'Alien disclosure in 2026', meta: '2d · market 18¢, AI says 5%', conf: 5, confClass: 'no-edge' },
-  { marketId: 'm5', rank: 2, name: 'Tesla Q2 deliveries > 500K', meta: '5d · market 65¢, AI says 40%', conf: 40, confClass: 'no-edge' },
+  { marketId: 'm3', rank: 1, conf: 5, confClass: 'no-edge' as const },
+  { marketId: 'm5', rank: 2, conf: 40, confClass: 'no-edge' as const },
 ];
 
 export default function Sidebar() {
+  const { t } = useLanguage();
+
   return (
     <aside className="sidebar">
       {/* YES Edge picks */}
       <div className="sidebar-group">
-        <div className="sidebar-section-title">AI Top Picks</div>
-        <div className="edge-group-label yes">YES Edge</div>
+        <div className="sidebar-section-title">{t.sidebar.aiTopPicks}</div>
+        <div className="edge-group-label yes">{t.sidebar.yesEdge}</div>
         <div className="ai-picks-list">
           {YES_EDGE_PICKS.map(pick => (
             <Link
@@ -28,8 +51,8 @@ export default function Sidebar() {
             >
               <div className="ai-pick-rank">{pick.rank}</div>
               <div className="ai-pick-info">
-                <div className="name">{pick.name}</div>
-                <div className="meta">{pick.meta}</div>
+                <div className="name">{pickName(pick.marketId, t)}</div>
+                <div className="meta">{pickMeta(pick.marketId, t)}</div>
               </div>
               <span className={`ai-pick-conf ${pick.confClass}`}>{pick.conf}%</span>
             </Link>
@@ -39,7 +62,7 @@ export default function Sidebar() {
 
       {/* NO Edge picks */}
       <div className="sidebar-group">
-        <div className="edge-group-label no">NO Edge</div>
+        <div className="edge-group-label no">{t.sidebar.noEdge}</div>
         <div className="ai-picks-list">
           {NO_EDGE_PICKS.map(pick => (
             <Link
@@ -49,8 +72,8 @@ export default function Sidebar() {
             >
               <div className="ai-pick-rank">{pick.rank}</div>
               <div className="ai-pick-info">
-                <div className="name">{pick.name}</div>
-                <div className="meta">{pick.meta}</div>
+                <div className="name">{pickName(pick.marketId, t)}</div>
+                <div className="meta">{pickMeta(pick.marketId, t)}</div>
               </div>
               <span className={`ai-pick-conf ${pick.confClass}`}>{pick.conf}%</span>
             </Link>
@@ -60,7 +83,7 @@ export default function Sidebar() {
 
       {/* Categories */}
       <div className="sidebar-group">
-        <div className="sidebar-section-title">Categories</div>
+        <div className="sidebar-section-title">{t.sidebar.categories}</div>
         <div className="cat-list">
           {CATEGORIES.map(cat => (
             <button
@@ -69,9 +92,9 @@ export default function Sidebar() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="cat-dot" style={{ background: cat.color }}></span>
-                {cat.name}
+                {t.categories[cat.id as keyof typeof t.categories] || cat.name}
               </div>
-              <span className="cat-count">{cat.count}</span>
+              <span className="cat-count">{t.categoryCounts[cat.id as keyof typeof t.categoryCounts]}</span>
             </button>
           ))}
         </div>
@@ -79,27 +102,27 @@ export default function Sidebar() {
 
       {/* Today's Session */}
       <div className="sidebar-group">
-        <div className="sidebar-section-title">Today's Session</div>
+        <div className="sidebar-section-title">{t.sidebar.todaysSession}</div>
         <div style={{fontSize:13,display:'flex',flexDirection:'column',gap:5,padding:'0 2px'}}>
           <div style={{display:'flex',justifyContent:'space-between'}}>
-            <span style={{color:'var(--muted)'}}>Open positions</span>
-            <strong>3</strong>
+            <span style={{color:'var(--muted)'}}>{t.sidebar.openPositions}</span>
+            <strong>{t.session.openPositions}</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
-            <span style={{color:'var(--muted)'}}>P&L today</span>
-            <strong style={{color:'var(--green)'}}>+$124.50</strong>
+            <span style={{color:'var(--muted)'}}>{t.sidebar.pnlToday}</span>
+            <strong style={{color:'var(--green)'}}>{t.session.pnlToday}</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
-            <span style={{color:'var(--muted)'}}>Session ROI</span>
-            <strong style={{color:'var(--green)'}}>+3.2%</strong>
+            <span style={{color:'var(--muted)'}}>{t.sidebar.sessionRoi}</span>
+            <strong style={{color:'var(--green)'}}>{t.session.roi}</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
-            <span style={{color:'var(--muted)'}}>AI accuracy (30d)</span>
-            <strong style={{color:'var(--green)'}}>73%</strong>
+            <span style={{color:'var(--muted)'}}>{t.sidebar.aiAccuracy}</span>
+            <strong style={{color:'var(--green)'}}>{t.session.accuracy}</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between',paddingTop:4,borderTop:'1px solid var(--border)',marginTop:1}}>
-            <span style={{color:'var(--muted)',fontSize:11}}>Best pick</span>
-            <span style={{fontSize:11,color:'var(--green)'}}>BTC +$87.20</span>
+            <span style={{color:'var(--muted)',fontSize:11}}>{t.sidebar.bestPick}</span>
+            <span style={{fontSize:11,color:'var(--green)'}}>{t.session.bestPick}</span>
           </div>
         </div>
       </div>

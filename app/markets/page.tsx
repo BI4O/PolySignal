@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { getAllMarkets, getMarketById } from '@/data/markets';
 import MarketCard from './MarketCard';
 import DetailPanel from './DetailPanel';
+import { useLanguage } from '@/lib/LanguageProvider';
 import type { Market } from '@/data/types';
 
 export default function MarketsPage() {
+  const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedMarketId, setSelectedMarketId] = useState<string>('m1');
   const allMarkets = getAllMarkets();
@@ -23,8 +25,8 @@ export default function MarketsPage() {
     <>
       <div className="market-list">
         <div className="list-header">
-          <h2>Expiring Soon</h2>
-          <span className="count">{filteredMarkets.length} markets</span>
+          <h2>{t.markets.expiringSoon}</h2>
+          <span className="count">{filteredMarkets.length} {t.markets.markets_count}</span>
         </div>
         {filteredMarkets.map(market => (
           <MarketCard

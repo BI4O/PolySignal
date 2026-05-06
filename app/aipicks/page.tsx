@@ -2,31 +2,43 @@
 
 import Link from 'next/link';
 import { TIMELINE_ENTRIES } from '@/data/markets';
+import { useLanguage } from '@/lib/LanguageProvider';
 
-const TYPE_LABELS: Record<string, string> = {
-  monitor: 'Monitoring',
-  rebalance: 'Rebalance',
-  discovery: 'Discovery',
+const STAT_LABEL_KEYS: Record<string, string> = {
+  Vol: 'tl_vol',
+  Edge: 'tl_edge',
+  Price: 'tl_price',
+  AI: 'tl_ai',
+  Conf: 'tl_conf',
+  Market: 'tl_market',
 };
 
 export default function AIPicksPage() {
+  const { t } = useLanguage();
+
+  const TYPE_LABELS: Record<string, string> = {
+    monitor: t.aipicks.monitoring,
+    rebalance: t.aipicks.rebalance,
+    discovery: t.aipicks.discovery,
+  };
+
   return (
     <div className="aipicks-timeline-body">
       <div className="tl-header">
         <div>
           <h1>
-            AI Surveillance Log
-            <small>What the AI has noticed in the last 24 hours — sorted by recency</small>
+            {t.aipicks.title}
+            <small>{t.aipicks.subtitle}</small>
           </h1>
         </div>
         <div className="accuracy-card">
-          <div className="title">AI Accuracy</div>
+          <div className="title">{t.aipicks.accuracy}</div>
           <div className="row">
-            <span className="l">Overall</span>
+            <span className="l">{t.aipicks.overall}</span>
             <span className="r green">73%</span>
           </div>
           <div className="row">
-            <span className="l">Last 30 days</span>
+            <span className="l">{t.aipicks.last30d}</span>
             <span className="r green">76% <span style={{fontSize:10,color:'var(--green)'}}>↑</span></span>
           </div>
           <div className="divider"></div>
@@ -47,12 +59,12 @@ export default function AIPicksPage() {
                   {TYPE_LABELS[entry.type]}
                 </span>
               </div>
-              <div className="tl-card-title" dangerouslySetInnerHTML={{ __html: entry.title }} />
-              <div className="tl-card-desc" dangerouslySetInnerHTML={{ __html: entry.description }} />
+              <div className="tl-card-title" dangerouslySetInnerHTML={{ __html: t.timeline[(entry.id.replace('-', '') + '_title') as keyof typeof t.timeline] as string || entry.title }} />
+              <div className="tl-card-desc" dangerouslySetInnerHTML={{ __html: t.timeline[(entry.id.replace('-', '') + '_desc') as keyof typeof t.timeline] as string || entry.description }} />
               <div className="tl-stats">
                 {entry.stats.map((stat, i) => (
                   <div key={i} className="tl-stat">
-                    {stat.label && <span className="lbl">{stat.label}</span>}
+                    {stat.label && <span className="lbl">{t.timeline[(STAT_LABEL_KEYS[stat.label] || 'tl_vol') as keyof typeof t.timeline] as string}</span>}
                     <span className={`val ${stat.color || ''}`}>{stat.value}</span>
                     {stat.arrow && <span className={`arrow-up ${stat.arrow === '↓' ? 'flip' : ''}`}>
                       {stat.arrow === '↓' ? '↓' : '↑'}
@@ -62,7 +74,7 @@ export default function AIPicksPage() {
               </div>
               <div className="tl-actions">
                 <Link href={`/markets/${entry.marketId}`} className="tl-market-link">
-                  View market →
+                  {t.aipicks.viewMarket}
                 </Link>
               </div>
             </div>

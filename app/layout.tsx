@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Topbar from "./Topbar";
-import TweaksPanel from "./TweaksPanel";
+import { LanguageProvider } from "@/lib/LanguageProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,11 +30,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body suppressHydrationWarning>
-        <Topbar />
-        <div className="app-layout">
-          {children}
-        </div>
-        <TweaksPanel />
+        <LanguageProvider>
+          <Topbar />
+          <div className="app-layout">
+            {children}
+          </div>
+        </LanguageProvider>
       </body>
     </html>
   );

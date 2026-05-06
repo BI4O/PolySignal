@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
+import Link from 'next/link';
 import { getMarketById } from '@/data/markets';
 import { useLanguage } from '@/lib/LanguageProvider';
 
@@ -32,6 +33,7 @@ export default function MarketDetailPage() {
   return (
     <div className="detail-page-wrap">
     <div className="detail-page">
+      <Link href="/markets" className="detail-back">← {t.nav.markets}</Link>
       <div className="detail-header">
         <div className="eyebrow">{market.category}</div>
         <h2>{t.marketNames[market.id as keyof typeof t.marketNames] || market.name}</h2>

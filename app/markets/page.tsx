@@ -1,43 +1,10 @@
-'use client';
-
-import { useState } from 'react';
-import { getAllMarkets, getMarketById } from '@/data/markets';
-import MarketCard from './MarketCard';
-import DetailPanel from './DetailPanel';
-import { useLanguage } from '@/lib/LanguageProvider';
-import type { Market } from '@/data/types';
+import { Suspense } from 'react';
+import MarketsPageInner from './MarketsPageInner';
 
 export default function MarketsPage() {
-  const { t } = useLanguage();
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [selectedMarketId, setSelectedMarketId] = useState<string>('m1');
-  const allMarkets = getAllMarkets();
-  const filteredMarkets = activeCategory === 'all'
-    ? allMarkets
-    : allMarkets.filter(m => m.category === activeCategory);
-  const selectedMarket = getMarketById(selectedMarketId) || null;
-
-  const handleSelectMarket = (id: string) => {
-    setSelectedMarketId(id);
-  };
-
   return (
-    <>
-      <div className="market-list">
-        <div className="list-header">
-          <h2>{t.markets.expiringSoon}</h2>
-          <span className="count">{filteredMarkets.length} {t.markets.markets_count}</span>
-        </div>
-        {filteredMarkets.map(market => (
-          <MarketCard
-            key={market.id}
-            market={market}
-            isSelected={market.id === selectedMarketId}
-            onSelect={handleSelectMarket}
-          />
-        ))}
-      </div>
-      <DetailPanel market={selectedMarket} />
-    </>
+    <Suspense fallback={<div className="market-list"><div className="list-header"><h2>Loading...</h2></div></div>}>
+      <MarketsPageInner />
+    </Suspense>
   );
 }

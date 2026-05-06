@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Sidebar from './Sidebar';
 
 export default function MarketsLayout({
@@ -7,7 +8,9 @@ export default function MarketsLayout({
 }) {
   return (
     <>
-      <Sidebar />
+      <Suspense fallback={<aside className="sidebar" />}>
+        <Sidebar />
+      </Suspense>
       <div className="main">
         {children}
       </div>

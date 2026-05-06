@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { CATEGORIES } from '@/data/markets';
 import { useLanguage } from '@/lib/LanguageProvider';
 
@@ -35,6 +36,18 @@ const NO_EDGE_PICKS = [
 
 export default function Sidebar() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const activeCat = searchParams.get('cat') || 'all';
+
+  const handleCatClick = (catId: string) => {
+    if (catId === 'all') {
+      router.replace(pathname);
+    } else {
+      router.replace(`${pathname}?cat=${catId}`);
+    }
+  };
 
   return (
     <aside className="sidebar">
@@ -81,14 +94,15 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="sidebar-group">
+      {/* Categories — flex: 1 to fill remaining space */}
+      <div className="sidebar-group" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <div className="sidebar-section-title">{t.sidebar.categories}</div>
         <div className="cat-list">
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
-              className="cat-item"
+              className={`cat-item ${activeCat === cat.id ? 'active' : ''}`}
+              onClick={() => handleCatClick(cat.id)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="cat-dot" style={{ background: cat.color }}></span>
@@ -100,8 +114,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Today's Session */}
-      <div className="sidebar-group">
+      {/* Today's Session — pushed to bottom */}
+      <div className="sidebar-group" style={{ marginTop: 'auto' }}>
         <div className="sidebar-section-title">{t.sidebar.todaysSession}</div>
         <div style={{fontSize:13,display:'flex',flexDirection:'column',gap:5,padding:'0 2px'}}>
           <div style={{display:'flex',justifyContent:'space-between'}}>

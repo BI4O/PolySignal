@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Topbar from "./Topbar";
+import { ChatWidget } from "@/app/ChatWidget";
 import { LanguageProvider } from "@/lib/LanguageProvider";
 
 const geistSans = Geist({
@@ -35,6 +36,7 @@ export default function RootLayout({
           <div className="app-layout">
             {children}
           </div>
+          <ChatWidget />
         </LanguageProvider>
       </body>
     </html>

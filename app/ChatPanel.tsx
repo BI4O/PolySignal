@@ -30,21 +30,17 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Initialize: load existing threads or create one
+  // Initialize: create a new thread on open
   useEffect(() => {
     const existing = getThreadIds()
     setThreadIds(existing)
-    if (existing.length > 0) {
-      setThreadId(existing[existing.length - 1])
-    } else {
-      createThread()
-        .then((id) => {
-          addThreadId(id)
-          setThreadIds([id])
-          setThreadId(id)
-        })
-        .catch(() => setError('Failed to create conversation'))
-    }
+    createThread()
+      .then((id) => {
+        addThreadId(id)
+        setThreadIds((prev) => [...prev, id])
+        setThreadId(id)
+      })
+      .catch(() => setError('Failed to create conversation'))
   }, [])
 
   const handleNewThread = async () => {

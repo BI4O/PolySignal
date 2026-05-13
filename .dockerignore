@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+.git
+.gitignore
+*.md
+.superpowers
+docs
+*.tsbuildinfo
+next-env.d.ts

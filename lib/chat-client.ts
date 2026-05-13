@@ -1,4 +1,7 @@
-const BASE = 'http://localhost:2024'
+const HOST = process.env.NEXT_PUBLIC_LANGGRAPH_HOST
+const PORT = process.env.NEXT_PUBLIC_LANGGRAPH_PORT
+if (!HOST || !PORT) throw new Error('NEXT_PUBLIC_LANGGRAPH_HOST and NEXT_PUBLIC_LANGGRAPH_PORT must be set')
+const BASE = `http://${HOST}:${PORT}`
 
 export async function createThread(): Promise<string> {
   const res = await fetch(`${BASE}/threads`, {

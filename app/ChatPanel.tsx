@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createThread, getThreadState, streamChat } from '@/lib/chat-client'
 import { getThreadIds, addThreadId } from '@/lib/chat-store'
+import { MarkdownMessage } from '@/app/MarkdownMessage'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -177,7 +178,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
             key={i}
             className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}
           >
-            {msg.content}
+            {msg.role === 'assistant' ? (
+              <MarkdownMessage content={msg.content} />
+            ) : (
+              msg.content
+            )}
             {isStreaming && i === messages.length - 1 && msg.role === 'assistant' && (
               <span className="chat-cursor">|</span>
             )}

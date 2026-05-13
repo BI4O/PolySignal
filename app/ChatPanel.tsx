@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createThread, getThreadState, streamChat } from '@/lib/chat-client'
-import { getThreadIds, addThreadId } from '@/lib/chat-store'
+import { getThreads, addThread, type ThreadInfo } from '@/lib/chat-store'
 import { MarkdownMessage } from '@/app/MarkdownMessage'
 
 interface Message {
@@ -10,9 +10,21 @@ interface Message {
   content: string
 }
 
+function timeAgo(iso: string): string {
+  if (!iso) return ''
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
 export function ChatPanel({ onClose }: { onClose: () => void }) {
   const [threadId, setThreadId] = useState<string | null>(null)
-  const [threadIds, setThreadIds] = useState<string[]>([])
+  const [threads, setThreads] = useState<ThreadInfo[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -32,23 +44,23 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
 
   // Initialize: create a new thread on open
   useEffect(() => {
-    const existing = getThreadIds()
-    setThreadIds(existing)
+    const existing = getThreads()
+    setThreads(existing)
     createThread()
-      .then((id) => {
-        addThreadId(id)
-        setThreadIds((prev) => [...prev, id])
-        setThreadId(id)
+      .then((info) => {
+        addThread(info)
+        setThreads((prev) => [...prev, info])
+        setThreadId(info.id)
       })
       .catch(() => setError('Failed to create conversation'))
   }, [])
 
   const handleNewThread = async () => {
     try {
-      const id = await createThread()
-      addThreadId(id)
-      setThreadIds((prev) => [...prev, id])
-      setThreadId(id)
+      const info = await createThread()
+      addThread(info)
+      setThreads((prev) => [...prev, info])
+      setThreadId(info.id)
       setMessages([])
       setError(null)
     } catch {
@@ -145,15 +157,15 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Thread selector */}
-      {threadIds.length > 0 && (
+      {threads.length > 0 && (
         <div className="chat-thread-selector">
           <select
             value={threadId ?? ''}
             onChange={(e) => handleSwitchThread(e.target.value)}
           >
-            {threadIds.map((id) => (
-              <option key={id} value={id}>
-                {id.slice(0, 8)}...
+            {[...threads].reverse().map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.id.slice(0, 8)}... {timeAgo(t.createdAt)}
               </option>
             ))}
           </select>

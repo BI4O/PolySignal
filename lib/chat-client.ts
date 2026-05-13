@@ -1,6 +1,6 @@
 const BASE = "/api/langgraph";
 
-export async function createThread(): Promise<string> {
+export async function createThread(): Promise<{ id: string; createdAt: string }> {
   const res = await fetch(`${BASE}/threads`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -8,7 +8,7 @@ export async function createThread(): Promise<string> {
   });
   if (!res.ok) throw new Error("Failed to create thread");
   const data = await res.json();
-  return data.thread_id;
+  return { id: data.thread_id, createdAt: data.created_at };
 }
 
 export async function getThreadState(
@@ -17,7 +17,12 @@ export async function getThreadState(
   const res = await fetch(`${BASE}/threads/${threadId}/state`);
   if (!res.ok) throw new Error("Failed to get thread state");
   const data = await res.json();
-  return { messages: data.values?.messages ?? [] };
+  const messages: { role: string; content: string }[] =
+    data.values?.messages?.map((m: { type?: string; content?: string }) => ({
+      role: m.type === "human" ? "user" : "assistant",
+      content: m.content ?? "",
+    })) ?? [];
+  return { messages };
 }
 
 export async function streamChat(

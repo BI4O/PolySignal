@@ -2,5 +2,16 @@ services:
   frontend:
     build: .
     env_file: .env
+    environment:
+      # override polybot host for Docker networking (same compose network)
+      LANGGRAPH_HOST: polybot-langgraph-api-1
+      LANGGRAPH_PORT: "8123"
     ports:
       - "${HOST_PORT}:${PORT}"
+    networks:
+      - polysignal_default
+      - polybot_default
+
+networks:
+  polybot_default:
+    external: true

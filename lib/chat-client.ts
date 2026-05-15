@@ -1,5 +1,8 @@
 const BASE = "/api/langgraph";
 
+const GRAPH_ID = process.env.NEXT_PUBLIC_LANGGRAPH_GRAPH_ID;
+if (!GRAPH_ID) throw new Error("NEXT_PUBLIC_LANGGRAPH_GRAPH_ID is required");
+
 export async function createThread(): Promise<{ id: string; createdAt: string }> {
   const res = await fetch(`${BASE}/threads`, {
     method: "POST",
@@ -39,7 +42,7 @@ export async function streamChat(
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
     body: JSON.stringify({
-      assistant_id: "base",
+      assistant_id: GRAPH_ID,
       input: { messages },
       stream_mode: ["values"],
     }),

@@ -141,7 +141,7 @@ describe('streamChat', () => {
     expect(callInit.method).toBe('POST')
     expect(callInit.headers).toEqual({ 'Content-Type': 'application/json', 'Accept': 'text/event-stream' })
     expect(JSON.parse(callInit.body)).toEqual({
-      assistant_id: 'base',
+      assistant_id: 'test-graph',
       input: { messages: msgs },
       stream_mode: ['values'],
     })

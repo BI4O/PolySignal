@@ -1,24 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createThread, getThreadState, streamChat } from '@/lib/chat-client'
 
-const BASE = 'http://localhost:2024'
-
 beforeEach(() => {
   vi.restoreAllMocks()
 })
 
 describe('createThread', () => {
-  it('returns thread ID on success', async () => {
+  it('returns id and createdAt on success', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ thread_id: 'uuid-123' }), { status: 200 })
+      new Response(JSON.stringify({ thread_id: 'uuid-123', created_at: '2025-01-01T00:00:00Z' }), { status: 200 })
     )
-    const id = await createThread()
-    expect(id).toBe('uuid-123')
-    expect(fetch).toHaveBeenCalledWith(`${BASE}/threads`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    })
+    const result = await createThread()
+    expect(result).toEqual({ id: 'uuid-123', createdAt: '2025-01-01T00:00:00Z' })
+    const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toContain('/api/langgraph/threads')
+    expect(init.method).toBe('POST')
+    expect(init.headers['Content-Type']).toBe('application/json')
+    expect(init.body).toBe(JSON.stringify({}))
   })
 
   it('throws on HTTP error', async () => {
@@ -30,151 +28,127 @@ describe('createThread', () => {
 })
 
 describe('getThreadState', () => {
-  it('returns messages array', async () => {
-    const msgs = [{ role: 'user', content: 'hi' }]
+  it('returns messages with mapped roles and createdAt', async () => {
+    const apiMessages = [
+      { type: 'human', content: 'hi', created_at: '2025-01-01T00:00:00Z' },
+      { type: 'ai', content: 'hello there', created_at: '2025-01-01T00:00:05Z' },
+    ]
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ values: { messages: msgs } }), { status: 200 })
+      new Response(JSON.stringify({ values: { messages: apiMessages } }), { status: 200 })
     )
     const result = await getThreadState('uuid-123')
-    expect(result).toEqual({ messages: msgs })
-    expect(fetch).toHaveBeenCalledWith(`${BASE}/threads/uuid-123/state`)
+    expect(result).toEqual({
+      messages: [
+        { role: 'user', content: 'hi', createdAt: '2025-01-01T00:00:00Z' },
+        { role: 'assistant', content: 'hello there', createdAt: '2025-01-01T00:00:05Z' },
+      ],
+    })
+    const [url] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toContain('/api/langgraph/threads/uuid-123/state')
+  })
+
+  it('returns empty messages when no values', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 })
+    )
+    const result = await getThreadState('uuid-123')
+    expect(result).toEqual({ messages: [] })
   })
 })
 
 describe('streamChat', () => {
-  it('yields token deltas from cumulative messages/partial events', async () => {
-    const sseBody = [
-      'event: metadata\ndata: {"run_id":"r1"}',
-      'event: messages/partial\ndata: [{"type":"ai","content":"Hello","tool_calls":[]}]',
-      'event: messages/partial\ndata: [{"type":"ai","content":"Hello world","tool_calls":[]}]',
-      '',
-    ].join('\n\n')
-
+  function sseResponse(...events: string[]) {
+    const body = events.join('\n\n') + '\n\n'
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode(sseBody))
+        controller.enqueue(new TextEncoder().encode(body))
         controller.close()
       },
     })
+    return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
+  }
 
+  it('yields content from values events', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 })
+      sseResponse(
+        'event: values\ndata: {"messages":[{"type":"ai","content":"Hello"}]}',
+        'event: values\ndata: {"messages":[{"type":"ai","content":"Hello world"}]}'
+      )
     )
 
-    const tokens: string[] = []
-    for await (const token of streamChat('uuid-123', [{ role: 'user', content: 'hi' }])) {
-      tokens.push(token)
-    }
-    expect(tokens).toEqual(['Hello', ' world'])
+    const chunks: string[] = []
+    await streamChat('uuid-123', [{ role: 'user', content: 'hi' }], new AbortController().signal, (content) => {
+      chunks.push(content)
+    })
+    expect(chunks).toEqual(['Hello', 'Hello world'])
   })
 
-  it('skips non-messages events', async () => {
-    const sseBody = [
-      'event: metadata\ndata: {"run_id":"r1"}',
-      'event: messages/partial\ndata: [{"type":"ai","content":"ok","tool_calls":[]}]',
-      '',
-    ].join('\n\n')
-
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(sseBody))
-        controller.close()
-      },
-    })
-
+  it('skips non-values events', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 })
+      sseResponse(
+        'event: metadata\ndata: {"run_id":"r1"}',
+        'event: values\ndata: {"messages":[{"type":"ai","content":"ok"}]}'
+      )
     )
 
-    const tokens: string[] = []
-    for await (const token of streamChat('thread', [{ role: 'user', content: 'hi' }])) {
-      tokens.push(token)
-    }
-    expect(tokens).toEqual(['ok'])
+    const chunks: string[] = []
+    await streamChat('uuid-123', [{ role: 'user', content: 'hi' }], new AbortController().signal, (content) => {
+      chunks.push(content)
+    })
+    expect(chunks).toEqual(['ok'])
   })
 
-  it('skips thinking phase (empty content with reasoning)', async () => {
-    const sseBody = [
-      'event: messages/partial\ndata: [{"type":"ai","content":"","additional_kwargs":{"reasoning_content":"thinking..."}}]',
-      'event: messages/partial\ndata: [{"type":"ai","content":"Real answer","tool_calls":[]}]',
-      '',
-    ].join('\n\n')
-
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(sseBody))
-        controller.close()
-      },
-    })
-
+  it('skips messages with empty content', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 })
+      sseResponse(
+        'event: values\ndata: {"messages":[{"type":"ai","content":""}]}',
+        'event: values\ndata: {"messages":[{"type":"ai","content":"Real answer"}]}'
+      )
     )
 
-    const tokens: string[] = []
-    for await (const token of streamChat('thread', [{ role: 'user', content: 'hi' }])) {
-      tokens.push(token)
-    }
-    expect(tokens).toEqual(['Real answer'])
+    const chunks: string[] = []
+    await streamChat('uuid-123', [{ role: 'user', content: 'hi' }], new AbortController().signal, (content) => {
+      chunks.push(content)
+    })
+    expect(chunks).toEqual(['Real answer'])
   })
 
-  it('skips non-ai message types', async () => {
-    const sseBody = [
-      'event: messages/partial\ndata: [{"type":"ToolMessage","content":"tool result"}]',
-      'event: messages/partial\ndata: [{"type":"ai","content":"answer","tool_calls":[]}]',
-      '',
-    ].join('\n\n')
-
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(sseBody))
-        controller.close()
-      },
-    })
-
+  it('skips non-ai message types in values events', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 })
+      sseResponse(
+        'event: values\ndata: {"messages":[{"type":"human","content":"hi"}]}',
+        'event: values\ndata: {"messages":[{"type":"ai","content":"answer"}]}'
+      )
     )
 
-    const tokens: string[] = []
-    for await (const token of streamChat('thread', [{ role: 'user', content: 'hi' }])) {
-      tokens.push(token)
-    }
-    expect(tokens).toEqual(['answer'])
+    const chunks: string[] = []
+    await streamChat('uuid-123', [{ role: 'user', content: 'hi' }], new AbortController().signal, (content) => {
+      chunks.push(content)
+    })
+    expect(chunks).toEqual(['answer'])
   })
 
   it('calls fetch with correct payload', async () => {
-    const sseBody = 'event: messages/partial\ndata: [{"type":"ai","content":"x","tool_calls":[]}]\n\n'
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(sseBody))
-        controller.close()
-      },
-    })
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      sseResponse('event: values\ndata: {"messages":[{"type":"ai","content":"x"}]}')
     )
 
     const msgs = [{ role: 'user', content: 'test' }]
-    for await (const _ of streamChat('uuid-123', msgs)) { void _ }
+    await streamChat('uuid-123', msgs, new AbortController().signal, () => {})
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      `${BASE}/threads/uuid-123/runs/stream`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-        body: JSON.stringify({
-          assistant_id: 'base',
-          input: { messages: msgs },
-          stream_mode: ['messages'],
-        }),
-        signal: expect.any(AbortSignal),
-      }
-    )
+    const [callUrl, callInit] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(callUrl).toContain('/api/langgraph/threads/uuid-123/runs/stream')
+    expect(callInit.method).toBe('POST')
+    expect(callInit.headers).toEqual({ 'Content-Type': 'application/json', 'Accept': 'text/event-stream' })
+    expect(JSON.parse(callInit.body)).toEqual({
+      assistant_id: 'base',
+      input: { messages: msgs },
+      stream_mode: ['values'],
+    })
+    expect(callInit.signal).toBeInstanceOf(AbortSignal)
   })
 
-  it('passes aborted signal to fetch', () => {
+  it('passes aborted signal and throws on abort', async () => {
     const controller = new AbortController()
     controller.abort()
 
@@ -185,11 +159,18 @@ describe('streamChat', () => {
       return Promise.reject(new DOMException('Aborted', 'AbortError'))
     })
 
-    // The generator won't yield anything since fetch rejects
-    return expect(async () => {
-      for await (const _ of streamChat('uuid-123', [{ role: 'user', content: 'hi' }], controller.signal)) {
-        void _
-      }
-    }).rejects.toThrow()
+    await expect(
+      streamChat('uuid-123', [{ role: 'user', content: 'hi' }], controller.signal, () => {})
+    ).rejects.toThrow()
+  })
+
+  it('throws on non-ok response', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response('Bad Request', { status: 400 })
+    )
+
+    await expect(
+      streamChat('uuid-123', [{ role: 'user', content: 'hi' }], new AbortController().signal, () => {})
+    ).rejects.toThrow('Failed to stream chat')
   })
 })

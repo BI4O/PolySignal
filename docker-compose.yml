@@ -1,7 +1,7 @@
 services:
   frontend:
     build: .
-    env_file: .env
+    env_file: .env.docker
     environment:
       # override polybot host for Docker networking (same compose network)
       LANGGRAPH_HOST: polybot-langgraph-api-1

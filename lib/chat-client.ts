@@ -17,11 +17,15 @@ export async function getThreadState(
   const res = await fetch(`${BASE}/threads/${threadId}/state`);
   if (!res.ok) throw new Error("Failed to get thread state");
   const data = await res.json();
-  const messages: { role: string; content: string }[] =
-    data.values?.messages?.map((m: { type?: string; content?: string }) => ({
-      role: m.type === "human" ? "user" : "assistant",
-      content: m.content ?? "",
-    })) ?? [];
+  const messages: { role: string; content: string; createdAt?: string }[] =
+    (data.values?.messages ?? [])
+      .filter((m: { type?: string; content?: string }) =>
+        m.type === "human" || (m.type === "ai" && m.content))
+      .map((m: { type?: string; content?: string; created_at?: string }) => ({
+        role: m.type === "human" ? "user" : "assistant",
+        content: m.content ?? "",
+        createdAt: m.created_at,
+      })) ?? [];
   return { messages };
 }
 

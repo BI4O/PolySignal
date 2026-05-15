@@ -8,6 +8,7 @@ import { MarkdownMessage } from '@/app/MarkdownMessage'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  createdAt?: string
 }
 
 function timeAgo(iso: string): string {
@@ -22,6 +23,15 @@ function timeAgo(iso: string): string {
   return `${days}d ago`
 }
 
+function formatTime(iso?: string): string {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
 export function ChatPanel({ onClose }: { onClose: () => void }) {
   const [threadId, setThreadId] = useState<string | null>(null)
   const [threads, setThreads] = useState<ThreadInfo[]>([])
@@ -33,6 +43,19 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleCopy = useCallback(async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedIndex(index)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopiedIndex(null), 2000)
+    } catch {
+      // Clipboard API unavailable (e.g., insecure context)
+    }
+  }, [])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -85,7 +108,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
   const handleSend = async () => {
     if (!input.trim() || isStreaming || !threadId) return
 
-    const userMessage: Message = { role: 'user', content: input.trim() }
+    const userMessage: Message = { role: 'user', content: input.trim(), createdAt: new Date().toISOString() }
     setInput('')
     setMessages((prev) => [...prev, userMessage])
     setIsStreaming(true)
@@ -95,7 +118,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
     abortRef.current = controller
 
     try {
-      const assistantMessage: Message = { role: 'assistant', content: '' }
+      const assistantMessage: Message = { role: 'assistant', content: '', createdAt: new Date().toISOString() }
       setMessages((prev) => [...prev, assistantMessage])
 
       await streamChat(threadId, [userMessage], controller.signal, (fullContent) => {
@@ -184,16 +207,41 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}
+            className={`chat-bubble-wrapper ${msg.role === 'user' ? 'chat-bubble-wrapper-user' : 'chat-bubble-wrapper-assistant'}`}
           >
-            {msg.role === 'assistant' ? (
-              <MarkdownMessage content={msg.content} />
-            ) : (
-              msg.content
-            )}
-            {isStreaming && i === messages.length - 1 && msg.role === 'assistant' && (
-              <span className="chat-cursor">|</span>
-            )}
+            <div
+              className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}
+            >
+              {msg.role === 'assistant' ? (
+                <MarkdownMessage content={msg.content} />
+              ) : (
+                msg.content
+              )}
+              {isStreaming && i === messages.length - 1 && msg.role === 'assistant' && (
+                <span className="chat-cursor">|</span>
+              )}
+            </div>
+            <div className="chat-message-footer">
+              <span className="chat-timestamp">{formatTime(msg.createdAt)}</span>
+              {msg.role === 'assistant' && !isStreaming && msg.content && (
+                <button
+                  className="chat-copy-btn"
+                  onClick={() => handleCopy(msg.content, i)}
+                  aria-label={copiedIndex === i ? 'Copied' : 'Copy message'}
+                >
+                  {copiedIndex === i ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />

@@ -18,12 +18,14 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-# ensure .env is present (Next.js reads it for NEXT_PUBLIC_* vars)
-RUN test -f .env || { echo "ERROR: .env is required for build"; exit 1; }
+# ensure .env.docker is present and Next.js can read it as .env
+RUN test -f .env.docker || { echo "ERROR: .env.docker is required for build"; exit 1; }
+RUN cp .env.docker .env
 
 ENV NODE_ENV=production
+ENV PATH="/app/node_modules/.bin:${PATH}"
 RUN --mount=type=cache,target=/app/.next/cache \
-    corepack enable pnpm && pnpm build
+    next build
 
 # ============================================
 # Stage 3: Minimal production image

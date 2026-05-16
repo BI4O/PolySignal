@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createThread, getThreadState, streamChat } from '@/lib/chat-client'
 import { getThreads, addThread, type ThreadInfo } from '@/lib/chat-store'
 import { MarkdownMessage } from '@/app/MarkdownMessage'
+import { formatTime } from '@/lib/format-time'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -23,14 +24,6 @@ function timeAgo(iso: string): string {
   return `${days}d ago`
 }
 
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  try {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return ''
-  }
-}
 
 export function ChatPanel({ onClose }: { onClose: () => void }) {
   const [threadId, setThreadId] = useState<string | null>(null)
@@ -49,12 +42,20 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
   const handleCopy = useCallback(async (text: string, index: number) => {
     try {
       await navigator.clipboard.writeText(text)
-      setCopiedIndex(index)
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
-      copyTimeoutRef.current = setTimeout(() => setCopiedIndex(null), 2000)
     } catch {
-      // Clipboard API unavailable (e.g., insecure context)
+      // Clipboard API unavailable — fallback to execCommand
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
     }
+    setCopiedIndex(index)
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    copyTimeoutRef.current = setTimeout(() => setCopiedIndex(null), 2000)
   }, [])
 
   const scrollToBottom = useCallback(() => {
@@ -223,7 +224,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
             </div>
             <div className="chat-message-footer">
               <span className="chat-timestamp">{formatTime(msg.createdAt)}</span>
-              {msg.role === 'assistant' && !isStreaming && msg.content && (
+              {msg.role === 'assistant' && msg.content && (
                 <button
                   className="chat-copy-btn"
                   onClick={() => handleCopy(msg.content, i)}

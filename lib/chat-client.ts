@@ -3,6 +3,21 @@ const BASE = "/api/langgraph";
 const GRAPH_ID = process.env.NEXT_PUBLIC_LANGGRAPH_GRAPH_ID;
 if (!GRAPH_ID) throw new Error("NEXT_PUBLIC_LANGGRAPH_GRAPH_ID is required");
 
+function uuidV7Timestamp(id: string): string | undefined {
+  // AI messages: id="lc_run--{uuid_v7}-0"
+  // UUID v7 embeds Unix ms in the first 48 bits
+  const match = id.match(/lc_run--([0-9a-f-]+)/);
+  if (!match) return;
+  const hex = match[1].replace(/-/g, "");
+  if (hex.length < 12) return;
+  try {
+    const tsMs = parseInt(hex.slice(0, 12), 16);
+    return new Date(tsMs).toISOString();
+  } catch {
+    return;
+  }
+}
+
 export async function createThread(): Promise<{ id: string; createdAt: string }> {
   const res = await fetch(`${BASE}/threads`, {
     method: "POST",
@@ -24,10 +39,10 @@ export async function getThreadState(
     (data.values?.messages ?? [])
       .filter((m: { type?: string; content?: string }) =>
         m.type === "human" || (m.type === "ai" && m.content))
-      .map((m: { type?: string; content?: string; created_at?: string }) => ({
+      .map((m: { type?: string; content?: string; created_at?: string; additional_kwargs?: { createdAt?: string }; id?: string }) => ({
         role: m.type === "human" ? "user" : "assistant",
         content: m.content ?? "",
-        createdAt: m.created_at,
+        createdAt: m.created_at ?? m.additional_kwargs?.createdAt ?? uuidV7Timestamp(m.id ?? ""),
       })) ?? [];
   return { messages };
 }

@@ -140,11 +140,11 @@ export default function Sidebar() {
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
             <span style={{color:'var(--muted)'}}>{t.sidebar.aiAccuracy}</span>
-            <strong style={{color:'var(--green)'}}>{t.session.accuracy}</strong>
+            <strong style={{color:'var(--muted)'}}>--</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between',paddingTop:4,borderTop:'1px solid var(--border)',marginTop:1}}>
             <span style={{color:'var(--muted)',fontSize:11}}>{t.sidebar.bestPick}</span>
-            <span style={{fontSize:11,color:'var(--green)'}}>{t.session.bestPick}</span>
+            <span style={{fontSize:11,color:'var(--muted)'}}>--</span>
           </div>
         </div>
       </div>

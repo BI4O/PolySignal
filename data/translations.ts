@@ -323,15 +323,6 @@ const en = {
     Science: 1,
     Business: 1,
   },
-
-  // ── Session stats ──
-  session: {
-    openPositions: '3',
-    pnlToday: '+$124.50',
-    roi: '+3.2%',
-    accuracy: '73%',
-    bestPick: 'BTC +$87.20',
-  },
 };
 
 const zh: typeof en = {
@@ -617,13 +608,6 @@ const zh: typeof en = {
     Sports: 1,
     Science: 1,
     Business: 1,
-  },
-  session: {
-    openPositions: '3',
-    pnlToday: '+$124.50',
-    roi: '+3.2%',
-    accuracy: '73%',
-    bestPick: 'BTC +$87.20',
   },
 };
 

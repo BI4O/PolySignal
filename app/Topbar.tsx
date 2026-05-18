@@ -44,7 +44,6 @@ export default function Topbar() {
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : '';
 
-  const avatarLetter = address ? address[2].toUpperCase() : '?';
 
   // Not logged in — show Sign In button
   if (!isConnected) {
@@ -104,16 +103,15 @@ export default function Topbar() {
       </nav>
       <div className="topbar-right" ref={dropdownRef}>
         <span className="topbar-balance">{t.topbar.balance} <strong>{balanceStr}</strong></span>
-        <div className="topbar-avatar" onClick={() => setDropdownOpen(!dropdownOpen)} style={{ cursor: 'pointer' }}>
-          {avatarLetter}
-        </div>
+        <button className="topbar-address" onClick={() => setDropdownOpen(!dropdownOpen)}>
+          {shortAddress}
+        </button>
 
         {dropdownOpen && (
           <div className="avatar-dropdown">
             {/* User info */}
             <div className="ad-header">
-              <div className="ad-avatar">{avatarLetter}</div>
-              <div>
+              <div className="ad-name-wrapper">
                 <div className="ad-name">{shortAddress}</div>
                 <div className="ad-email">{t.topbar.connectedWallet}</div>
               </div>

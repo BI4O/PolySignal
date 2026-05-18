@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from './auth-provider'
+import { deriveSafeWallet } from './derive-wallet'
 import { mapApiTrade } from './map-trade'
 import { mapApiPosition } from './map-position'
 import { computeSummary } from './map-summary'
@@ -67,55 +68,88 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const fetchingRef = useRef(false)
 
-  const fetchAll = useCallback(async () => {
+  const doFetch = useCallback(async (silent = false) => {
     if (!address || !isConnected || fetchingRef.current) return
+
+    const hexAddress = address.includes(':') ? `0x${address.split(':').pop()!}` : address
+
     fetchingRef.current = true
-    setLoading(true)
+    if (!silent) setLoading(true)
     setError(null)
     try {
-      // Fetch trades from Data API
-      const tradesRes = await fetch(`/api/data/trades?maker_address=${address}&limit=100`)
+      const DATA_API = 'https://data-api.polymarket.com'
+      const proxyWallet = deriveSafeWallet(hexAddress)
+
+      const [tradesRes, balRes, posRes, closedPosRes] = await Promise.all([
+        fetch(`${DATA_API}/trades?user=${proxyWallet}&limit=200`),
+        fetch('/api/balance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eoa: hexAddress }),
+        }),
+        fetch(`${DATA_API}/positions?user=${proxyWallet}`),
+        fetch(`${DATA_API}/closed-positions?user=${proxyWallet}&limit=50`),
+      ])
+
       if (!tradesRes.ok) throw new Error('Failed to fetch trade data')
-      const tradesData: any[] = await tradesRes.json()
+      const [tradesData, balData, posData, closedPosData] = await Promise.all([
+        tradesRes.json(),
+        balRes.json(),
+        posRes.ok ? posRes.json() : Promise.resolve([]),
+        closedPosRes.ok ? closedPosRes.json() : Promise.resolve([]),
+      ])
+
       const tradesArr = Array.isArray(tradesData) ? tradesData : []
-
-      // Read pUSD balance via deterministic Safe wallet derivation
-      const balRes = await fetch('/api/balance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eoa: address }),
-      })
-      const balData = await balRes.json()
       const balance = balData.balance ?? 0
+      const positionsArr = Array.isArray(posData) ? posData : []
+      const closedPosArr = Array.isArray(closedPosData) ? closedPosData : []
 
-      // Fetch open positions
-      const posRes = await fetch(`/api/data/positions?user=${address}`)
-      const posData: any[] = posRes.ok ? await posRes.json() : []
+      const historyTrades: TradeData[] = closedPosArr.map((cp: any) => ({
+        marketName: cp.title || '',
+        marketMeta: '',
+        side: cp.outcome === 'Yes' ? 'YES' as const : 'NO' as const,
+        entry: Math.round(Number(cp.avgPrice ?? 0) * 100),
+        exit: 100,
+        contracts: Math.round(Number(cp.totalBought ?? 0)),
+        pnl: Number(cp.realizedPnl ?? 0),
+        aiAtEntry: 0,
+        result: (Number(cp.realizedPnl ?? 0) >= 0 ? 'Won' : 'Lost') as 'Won' | 'Lost',
+      }))
 
-      setSummary(computeSummary(tradesArr, posData, balance))
-      setPositions((Array.isArray(posData) ? posData : []).map(mapApiPosition))
-      setTrades(tradesArr.map(mapApiTrade))
+      setSummary(computeSummary(tradesArr, positionsArr, balance, closedPosArr))
+      setPositions(positionsArr.map(mapApiPosition))
+      setTrades(historyTrades)
     } catch (err) {
       setError(err instanceof Error ? err.message : '数据获取失败')
     } finally {
       fetchingRef.current = false
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [address, isConnected])
 
+  const fetchAll = useCallback(() => doFetch(false), [doFetch])
+  const refresh = useCallback(() => doFetch(true), [doFetch])
+
   useEffect(() => {
     if (isConnected && address) {
-      fetchAll()
+      doFetch(false)
     } else {
       setSummary(null)
       setPositions([])
       setTrades([])
       setError(null)
     }
-  }, [isConnected, address, fetchAll])
+  }, [isConnected, address, doFetch])
+
+  // Polling: refresh trades/positions/closed-positions every 10s
+  useEffect(() => {
+    if (!isConnected || !address) return
+    const interval = setInterval(() => doFetch(true), 10_000)
+    return () => clearInterval(interval)
+  }, [isConnected, address, doFetch])
 
   return (
-    <UserDataContext.Provider value={{ summary, positions, trades, loading, error, refresh: fetchAll }}>
+    <UserDataContext.Provider value={{ summary, positions, trades, loading, error, refresh }}>
       {children}
     </UserDataContext.Provider>
   )

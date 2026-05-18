@@ -8,19 +8,27 @@ interface PositionSummaryInput {
   conditionId?: string
 }
 
+interface ClosedPositionInput {
+  realizedPnl?: number
+}
+
 export function computeSummary(
-  trades: TradeSummaryInput[],
+  _trades: TradeSummaryInput[],
   positions: PositionSummaryInput[],
   balance: number,
+  closedPositions: ClosedPositionInput[] = [],
 ): SummaryData {
-  const won = trades.filter(t => t.side === 'SELL').length
   const posArr = Array.isArray(positions) ? positions : []
+  const closedArr = Array.isArray(closedPositions) ? closedPositions : []
+
+  const totalPnl = closedArr.reduce((sum, p) => sum + (p.realizedPnl ?? 0), 0)
+  const won = closedArr.filter(p => (p.realizedPnl ?? 0) >= 0).length
 
   return {
     balance,
-    totalPnl: 0,
-    tradeCount: trades.length,
-    winRate: trades.length > 0 ? Math.round((won / trades.length) * 100) : 0,
+    totalPnl: Math.round(totalPnl * 100) / 100,
+    tradeCount: closedArr.length,
+    winRate: closedArr.length > 0 ? Math.round((won / closedArr.length) * 100) : 0,
     openPositions: posArr.length,
     pnlToday: 0,
     sessionRoi: '0%',

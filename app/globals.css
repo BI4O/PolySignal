@@ -79,6 +79,22 @@ a{color:var(--accent);text-decoration:none}
   border-radius:var(--radius-sm);
 }
 .topbar-balance strong{color:var(--fg);font-weight:600}
+.topbar-signin{
+  padding:6px 16px;
+  border-radius:99px;
+  border:1px solid var(--accent);
+  background:transparent;
+  color:var(--accent);
+  font-family:var(--font-body);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .15s;
+}
+.topbar-signin:hover{
+  background:var(--accent);
+  color:#fff;
+}
 .topbar-avatar{
   width:32px;height:32px;border-radius:50%;
   background:var(--accent);color:#fff;
@@ -168,6 +184,22 @@ a{color:var(--accent);text-decoration:none}
 .ad-tweaks-body {
   padding-top: 8px;
 }
+.ad-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.ad-logout-btn:hover { opacity: .7; }
 
 /* App layout */
 .app-layout {

@@ -4,6 +4,7 @@ import "./globals.css";
 import Topbar from "./Topbar";
 import { ChatWidget } from "@/app/ChatWidget";
 import { LanguageProvider } from "@/lib/LanguageProvider";
+import { Providers } from "@/app/providers";
 
 const geistSans = localFont({
   src: "../public/fonts/Geist[wght].woff2",
@@ -33,13 +34,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body suppressHydrationWarning>
-        <LanguageProvider>
-          <Topbar />
-          <div className="app-layout">
-            {children}
-          </div>
-          <ChatWidget />
-        </LanguageProvider>
+        <Providers>
+          <LanguageProvider>
+            <Topbar />
+            <div className="app-layout">
+              {children}
+            </div>
+            <ChatWidget />
+          </LanguageProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -1,24 +1,81 @@
 'use client';
 
 import { useState } from 'react';
-import { HOLDINGS, TRADES } from '@/data/markets';
 import { useLanguage } from '@/lib/LanguageProvider';
-import type { Holding, Trade } from '@/data/types';
+import { useAuth } from '@/lib/auth-provider';
+import { useUserData } from '@/lib/user-data-provider';
+import type { PositionData, TradeData } from '@/lib/user-data-provider';
 
 type MeTab = 'positions' | 'history' | 'settings';
 
 export default function MePage() {
   const { t } = useLanguage();
+  const { isConnected, login } = useAuth();
+  const { summary, positions, trades, loading, error } = useUserData();
   const [activeTab, setActiveTab] = useState<MeTab>('positions');
+
+  // Not logged in
+  if (!isConnected) {
+    return (
+      <div className="me-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 16, color: 'var(--muted)', marginBottom: 16 }}>
+            {t.me.connectToView}
+          </p>
+          <button className="topbar-signin" onClick={login}>
+            {t.topbar.signIn}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading
+  if (loading && !summary) {
+    return (
+      <div className="me-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--muted)' }}>{t.me.loading}</p>
+      </div>
+    );
+  }
+
+  // Error
+  if (error && !summary) {
+    return (
+      <div className="me-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: 14, color: 'var(--red)', marginBottom: 12 }}>{error}</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>{t.me.dataUnavailable}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="me-page">
       {/* Stat cards */}
       <div className="stat-row">
-        <StatCard label={t.me.totalPnl} value="+$4,283.50" valueColor="green" sub={t.me.sinceFirstTrade} />
-        <StatCard label={t.me.trades} value="147" sub="99 won · 48 lost" />
-        <StatCard label={t.me.winRate} value="67.3%" sub="Last 30d: 71.4%" />
-        <StatCard label={t.me.activePositions} value="3" sub={`$2,840 ${t.me.atStake}`} />
+        <StatCard
+          label={t.me.totalPnl}
+          value={summary ? `${summary.totalPnl >= 0 ? '+' : ''}$${summary.totalPnl.toFixed(2)}` : '—'}
+          valueColor={summary && summary.totalPnl >= 0 ? 'green' : summary && summary.totalPnl < 0 ? 'red' : undefined}
+          sub={t.me.sinceFirstTrade}
+        />
+        <StatCard
+          label={t.me.trades}
+          value={summary?.tradeCount.toString() ?? '—'}
+          sub={`${summary ? Math.round(summary.tradeCount * (summary.winRate / 100)) : '—'} won · ${summary ? summary.tradeCount - Math.round(summary.tradeCount * (summary.winRate / 100)) : '—'} lost`}
+        />
+        <StatCard
+          label={t.me.winRate}
+          value={summary ? `${summary.winRate}%` : '—'}
+          sub={summary ? `Last 30d: ${summary.winRate}%` : ''}
+        />
+        <StatCard
+          label={t.me.activePositions}
+          value={summary?.openPositions.toString() ?? '—'}
+          sub={`${t.me.atStake}`}
+        />
       </div>
 
       {/* Tab bar */}
@@ -35,29 +92,35 @@ export default function MePage() {
             <div className="me-section">
               <div className="me-section-header">
                 <h3>{t.me.currentHoldings}</h3>
-                <span className="count-badge">{HOLDINGS.length} {t.me.positions}</span>
+                <span className="count-badge">{positions.length} {t.me.positions}</span>
               </div>
               <div className="me-section-body">
-                <table className="hold-table">
-                  <thead>
-                    <tr>
-                      <th>{t.me.market}</th>
-                      <th className="th-center">{t.me.side}</th>
-                      <th className="num">{t.me.entry}</th>
-                      <th className="num">{t.me.current}</th>
-                      <th className="num">{t.me.contracts}</th>
-                      <th className="num">{t.me.staked}</th>
-                      <th className="num">{t.me.pnl}</th>
-                      <th className="th-center">{t.me.aiAtEntry}</th>
-                      <th>{t.me.status}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {HOLDINGS.map((h, i) => (
-                      <HoldingRow key={i} holding={h} t={t} idx={i} />
-                    ))}
-                  </tbody>
-                </table>
+                {positions.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                    {t.me.noPositions}
+                  </div>
+                ) : (
+                  <table className="hold-table">
+                    <thead>
+                      <tr>
+                        <th>{t.me.market}</th>
+                        <th className="th-center">{t.me.side}</th>
+                        <th className="num">{t.me.entry}</th>
+                        <th className="num">{t.me.current}</th>
+                        <th className="num">{t.me.contracts}</th>
+                        <th className="num">{t.me.staked}</th>
+                        <th className="num">{t.me.pnl}</th>
+                        <th className="th-center">{t.me.aiAtEntry}</th>
+                        <th>{t.me.status}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {positions.map((p, i) => (
+                        <HoldingRow key={i} position={p} t={t} />
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
@@ -71,28 +134,34 @@ export default function MePage() {
             <div className="me-section">
               <div className="me-section-header">
                 <h3>{t.me.tradeHistory}</h3>
-                <span className="count-badge">{t.me.last} {TRADES.length} {t.me.trades}</span>
+                <span className="count-badge">{t.me.last} {trades.length} {t.me.trades}</span>
               </div>
               <div className="me-section-body">
-                <table className="hold-table">
-                  <thead>
-                    <tr>
-                      <th>{t.me.market}</th>
-                      <th className="th-center">{t.me.side}</th>
-                      <th className="num">{t.me.entry}</th>
-                      <th className="num">{t.me.exit}</th>
-                      <th className="num">{t.me.contracts}</th>
-                      <th className="num">{t.me.pnl}</th>
-                      <th className="th-center">{t.me.aiAtEntry}</th>
-                      <th>{t.me.result}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {TRADES.map((tr, i) => (
-                      <TradeRow key={i} trade={tr} t={t} idx={i} />
-                    ))}
-                  </tbody>
-                </table>
+                {trades.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                    {t.me.noTrades}
+                  </div>
+                ) : (
+                  <table className="hold-table">
+                    <thead>
+                      <tr>
+                        <th>{t.me.market}</th>
+                        <th className="th-center">{t.me.side}</th>
+                        <th className="num">{t.me.entry}</th>
+                        <th className="num">{t.me.exit}</th>
+                        <th className="num">{t.me.contracts}</th>
+                        <th className="num">{t.me.pnl}</th>
+                        <th className="th-center">{t.me.aiAtEntry}</th>
+                        <th>{t.me.result}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trades.map((tr, i) => (
+                        <TradeRow key={i} trade={tr} t={t} />
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
@@ -104,7 +173,7 @@ export default function MePage() {
         <div className="me-tab-content active">
           <div className="me-tab-scroll">
             <div className="me-section acc-settings">
-              <SettingsAccordion t={t} />
+              <SettingsAccordion t={t} login={login} isConnected={isConnected} />
             </div>
           </div>
         </div>
@@ -133,43 +202,36 @@ function TabButton({ label, isActive, onClick }: { label: string; isActive: bool
   );
 }
 
-const HOLDING_TRANS_KEYS = ['h1', 'h2', 'h3'] as const;
-const TRADE_TRANS_KEYS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
-
-function HoldingRow({ holding, t: trans, idx }: { holding: Holding; t: any; idx: number }) {
-  const aiColor = holding.aiAtEntry >= 80 ? 'var(--green)' : holding.aiAtEntry >= 60 ? 'var(--yellow)' : 'var(--blue)';
-  const hk = HOLDING_TRANS_KEYS[idx] || 'h1';
+function HoldingRow({ position, t: trans }: { position: PositionData; t: any }) {
   return (
     <tr>
       <td>
         <div className="market-cell">
-          <span className="mkt-name">{trans.holdings[`${hk}_name`] || holding.marketName}</span>
-          <span className="mkt-meta">{trans.holdings[`${hk}_meta`] || holding.marketMeta}</span>
+          <span className="mkt-name">{position.marketName}</span>
+          <span className="mkt-meta">{position.marketMeta}</span>
         </div>
       </td>
-      <td className="td-center" style={{color: holding.side === 'YES' ? 'var(--green)' : 'var(--red)', fontWeight: 600, fontSize: 11}}>{holding.side}</td>
-      <td className="num">{holding.entry}¢</td>
-      <td className="num" style={{color: holding.current >= holding.entry ? 'var(--green)' : 'var(--red)', fontWeight: 600}}>{holding.current}¢</td>
-      <td className="num">{holding.contracts}</td>
-      <td className="num">${holding.staked.toFixed(2)}</td>
-      <td className={`pnl ${holding.pnl === null ? '' : holding.pnl >= 0 ? 'pos' : 'neg'}`}>
-        {holding.pnl === null ? '—' : `${holding.pnl >= 0 ? '+' : ''}$${holding.pnl.toFixed(2)}`}
+      <td className="td-center" style={{color: position.side === 'YES' ? 'var(--green)' : 'var(--red)', fontWeight: 600, fontSize: 11}}>{position.side}</td>
+      <td className="num">{position.entry}¢</td>
+      <td className="num" style={{color: position.current >= position.entry ? 'var(--green)' : 'var(--red)', fontWeight: 600}}>{position.current}¢</td>
+      <td className="num">{position.contracts}</td>
+      <td className="num">${position.staked.toFixed(2)}</td>
+      <td className={`pnl ${position.pnl === null ? '' : position.pnl >= 0 ? 'pos' : 'neg'}`}>
+        {position.pnl === null ? '—' : `${position.pnl >= 0 ? '+' : ''}$${position.pnl.toFixed(2)}`}
       </td>
-      <td className="ai-conf-cell" style={{color: aiColor}}>{holding.aiAtEntry}%</td>
+      <td className="ai-conf-cell" style={{color: 'var(--muted)'}}>{position.aiAtEntry || '—'}</td>
       <td><span className="status-pill open">{trans.me.open}</span></td>
     </tr>
   );
 }
 
-function TradeRow({ trade, t: trans, idx }: { trade: Trade; t: any; idx: number }) {
-  const aiColor = trade.aiAtEntry >= 80 ? 'var(--green)' : trade.aiAtEntry >= 60 ? 'var(--yellow)' : 'var(--blue)';
-  const tk = TRADE_TRANS_KEYS[idx] || 't1';
+function TradeRow({ trade, t: trans }: { trade: TradeData; t: any }) {
   return (
     <tr>
       <td>
         <div className="market-cell">
-          <span className="mkt-name">{trans.trades[`${tk}_name`] || trade.marketName}</span>
-          <span className="mkt-meta">{trans.trades[`${tk}_meta`] || trade.marketMeta}</span>
+          <span className="mkt-name">{trade.marketName}</span>
+          <span className="mkt-meta">{trade.marketMeta}</span>
         </div>
       </td>
       <td className="td-center" style={{color: trade.side === 'YES' ? 'var(--green)' : 'var(--red)', fontWeight: 600, fontSize: 11}}>{trade.side}</td>
@@ -177,13 +239,13 @@ function TradeRow({ trade, t: trans, idx }: { trade: Trade; t: any; idx: number 
       <td className="num">{trade.exit}¢</td>
       <td className="num">{trade.contracts}</td>
       <td className={`pnl ${trade.pnl >= 0 ? 'pos' : 'neg'}`}>{trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}</td>
-      <td className="ai-conf-cell" style={{color: aiColor}}>{trade.aiAtEntry}%</td>
+      <td className="ai-conf-cell" style={{color: 'var(--muted)'}}>{trade.aiAtEntry || '—'}</td>
       <td><span className={`status-pill ${trade.result === 'Won' ? 'won' : 'lost'}`}>{trade.result === 'Won' ? trans.me.won : trans.me.lost}</span></td>
     </tr>
   );
 }
 
-function SettingsAccordion({ t: trans }: { t: any }) {
+function SettingsAccordion({ t: trans, login, isConnected }: { t: any; login: () => void; isConnected: boolean }) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -199,7 +261,10 @@ function SettingsAccordion({ t: trans }: { t: any }) {
             <div className="acc-desc">{trans.me.polymarketApiDesc}</div>
           </div>
           <div className="acc-action">
-            <span className="acc-btn connected">{trans.me.connected}</span>
+            {isConnected
+              ? <span className="acc-btn connected">{trans.topbar.connected}</span>
+              : <span className="acc-btn primary" onClick={login}>{trans.topbar.signIn}</span>
+            }
           </div>
         </div>
         <div className="acc-row">
@@ -209,26 +274,6 @@ function SettingsAccordion({ t: trans }: { t: any }) {
           </div>
           <div className="acc-action">
             <span className="acc-btn" onClick={() => alert(trans.me.comingSoon)}>{trans.me.configure}</span>
-          </div>
-        </div>
-        <div className="acc-row">
-          <div>
-            <div className="acc-label">{trans.me.defaultOrderSize}</div>
-            <div className="acc-desc">{trans.me.defaultOrderSizeDesc}</div>
-          </div>
-          <div className="acc-action" style={{display:'flex',alignItems:'center',gap:8}}>
-            <input type="number" defaultValue={10} min={1}
-                   style={{width:64,padding:'4px 8px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg)',fontFamily:'var(--font-body)',fontSize:13,textAlign:'center'}} />
-            <span style={{fontSize:11,color:'var(--muted)'}}>{trans.me.ct}</span>
-          </div>
-        </div>
-        <div className="acc-row">
-          <div>
-            <div className="acc-label">{trans.me.displayPref}</div>
-            <div className="acc-desc">{trans.me.displayPrefDesc}</div>
-          </div>
-          <div className="acc-action">
-            <span className="acc-btn" style={{opacity:0.5}}>{trans.me.light}</span>
           </div>
         </div>
       </div>

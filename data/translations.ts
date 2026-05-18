@@ -7,6 +7,9 @@ const en = {
   topbar: {
     balance: 'Balance',
     signIn: 'Sign In',
+    connectedWallet: 'Connected via WalletConnect',
+    signOut: 'Sign Out',
+    connected: 'Connected',
     language: 'Language',
   },
 
@@ -82,6 +85,11 @@ const en = {
 
   // ── Me page ──
   me: {
+    connectToView: 'Connect your wallet to view your portfolio',
+    loading: 'Loading portfolio...',
+    dataUnavailable: 'Portfolio data is currently unavailable. Make sure you have API credentials configured.',
+    noPositions: 'No open positions',
+    noTrades: 'No trade history',
     totalPnl: 'Total P&L',
     sinceFirstTrade: 'Since first trade',
     trades: 'Trades',
@@ -330,6 +338,9 @@ const zh: typeof en = {
   topbar: {
     balance: '余额',
     signIn: '登录',
+    connectedWallet: '已通过 WalletConnect 连接',
+    signOut: '退出登录',
+    connected: '已连接',
     language: '语言',
   },
   nav: {
@@ -393,6 +404,11 @@ const zh: typeof en = {
     discovery: '发现',
   },
   me: {
+    connectToView: '连接钱包以查看您的投资组合',
+    loading: '加载投资组合中...',
+    dataUnavailable: '投资组合数据暂不可用。请确认 API 凭证已正确配置。',
+    noPositions: '暂无持仓',
+    noTrades: '暂无交易记录',
     totalPnl: '总盈亏',
     sinceFirstTrade: '首笔交易至今',
     trades: '交易数',

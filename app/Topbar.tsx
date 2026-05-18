@@ -4,10 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/lib/LanguageProvider';
+import { useAuth } from '@/lib/auth-provider';
+import { useUserData } from '@/lib/user-data-provider';
 import type { Lang } from '@/data/translations';
 
 export default function Topbar() {
   const { lang, setLang, t } = useLanguage();
+  const { address, isConnected, login, logout } = useAuth();
+  const { summary, loading } = useUserData();
   const pathname = usePathname();
 
   const NAV_ITEMS = [
@@ -24,7 +28,6 @@ export default function Topbar() {
     return pathname === href;
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -36,6 +39,49 @@ export default function Topbar() {
     }
     return () => document.removeEventListener('mousedown', handleClick);
   }, [dropdownOpen]);
+
+  const shortAddress = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : '';
+
+  const avatarLetter = address ? address[2].toUpperCase() : '?';
+
+  // Not logged in — show Sign In button
+  if (!isConnected) {
+    return (
+      <header className="topbar">
+        <div className="topbar-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+          Polymarket Signals
+        </div>
+        <nav className="topbar-nav">
+          {NAV_ITEMS.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={isActive(item.href) ? 'active' : ''}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="topbar-right">
+          <button className="topbar-signin" onClick={login}>
+            {t.topbar.signIn}
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  // Logged in — show balance + avatar
+  const balanceStr = summary
+    ? `$${summary.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : loading
+      ? '...'
+      : '$0.00';
 
   return (
     <header className="topbar">
@@ -57,39 +103,48 @@ export default function Topbar() {
         ))}
       </nav>
       <div className="topbar-right" ref={dropdownRef}>
-        <span className="topbar-balance">{t.topbar.balance} <strong>$12,430</strong></span>
+        <span className="topbar-balance">{t.topbar.balance} <strong>{balanceStr}</strong></span>
         <div className="topbar-avatar" onClick={() => setDropdownOpen(!dropdownOpen)} style={{ cursor: 'pointer' }}>
-          B
+          {avatarLetter}
         </div>
 
         {dropdownOpen && (
           <div className="avatar-dropdown">
             {/* User info */}
             <div className="ad-header">
-              <div className="ad-avatar">B</div>
+              <div className="ad-avatar">{avatarLetter}</div>
               <div>
-                <div className="ad-name">Builder</div>
-                <div className="ad-email">builder@polymarket.com</div>
+                <div className="ad-name">{shortAddress}</div>
+                <div className="ad-email">{t.topbar.connectedWallet}</div>
               </div>
             </div>
             <div className="ad-stats">
               <div className="ad-stat">
                 <span className="ad-stat-label">{t.topbar.balance}</span>
-                <span className="ad-stat-value">$12,430</span>
+                <span className="ad-stat-value">{balanceStr}</span>
               </div>
               <div className="ad-stat">
                 <span className="ad-stat-label">{t.me.totalPnl}</span>
-                <span className="ad-stat-value green">+$4,283.50</span>
+                <span className={`ad-stat-value ${summary && summary.totalPnl >= 0 ? 'green' : ''}`}>
+                  {summary ? `${summary.totalPnl >= 0 ? '+' : ''}$${summary.totalPnl.toFixed(2)}` : '—'}
+                </span>
               </div>
               <div className="ad-stat">
                 <span className="ad-stat-label">{t.me.positions}</span>
-                <span className="ad-stat-value">3</span>
+                <span className="ad-stat-value">{summary?.openPositions ?? '—'}</span>
               </div>
               <div className="ad-stat">
                 <span className="ad-stat-label">{t.me.winRate}</span>
-                <span className="ad-stat-value">67.3%</span>
+                <span className="ad-stat-value">{summary ? `${summary.winRate}%` : '—'}</span>
               </div>
             </div>
+
+            <div className="ad-divider" />
+
+            {/* Logout */}
+            <button className="ad-logout-btn" onClick={logout}>
+              {t.topbar.signOut}
+            </button>
 
             <div className="ad-divider" />
 

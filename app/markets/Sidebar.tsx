@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { CATEGORIES } from '@/data/markets';
 import { useLanguage } from '@/lib/LanguageProvider';
+import { useAuth } from '@/lib/auth-provider'
+import { useUserData } from '@/lib/user-data-provider'
 
 function pickName(marketId: string, t: any): string {
   const map: Record<string, string> = {
@@ -36,6 +38,8 @@ const NO_EDGE_PICKS = [
 
 export default function Sidebar() {
   const { t } = useLanguage();
+  const { isConnected } = useAuth()
+  const { summary } = useUserData()
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -120,15 +124,19 @@ export default function Sidebar() {
         <div style={{fontSize:13,display:'flex',flexDirection:'column',gap:5,padding:'0 2px'}}>
           <div style={{display:'flex',justifyContent:'space-between'}}>
             <span style={{color:'var(--muted)'}}>{t.sidebar.openPositions}</span>
-            <strong>{t.session.openPositions}</strong>
+            <strong>{isConnected && summary ? summary.openPositions : '—'}</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
             <span style={{color:'var(--muted)'}}>{t.sidebar.pnlToday}</span>
-            <strong style={{color:'var(--green)'}}>{t.session.pnlToday}</strong>
+            <strong style={{color:'var(--green)'}}>
+              {isConnected && summary
+                ? `${summary.pnlToday >= 0 ? '+' : ''}$${summary.pnlToday.toFixed(2)}`
+                : '—'}
+            </strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
             <span style={{color:'var(--muted)'}}>{t.sidebar.sessionRoi}</span>
-            <strong style={{color:'var(--green)'}}>{t.session.roi}</strong>
+            <strong style={{color:'var(--green)'}}>{isConnected && summary ? summary.sessionRoi : '—'}</strong>
           </div>
           <div style={{display:'flex',justifyContent:'space-between'}}>
             <span style={{color:'var(--muted)'}}>{t.sidebar.aiAccuracy}</span>

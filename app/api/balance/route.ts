@@ -2,7 +2,7 @@ import { createPublicClient, http } from 'viem'
 import { polygon } from 'viem/chains'
 import { deriveSafeWallet } from '@/lib/derive-wallet'
 
-const PUSD = '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB'
+const PUSD = '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB' as const
 const ABI = [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }] as const
 
 const client = createPublicClient({

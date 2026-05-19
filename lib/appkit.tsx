@@ -29,4 +29,10 @@ createAppKit({
     emailShowWallets: false,
   },
   allWallets: 'HIDE',
+  themeMode: 'light',
+  themeVariables: {
+    '--apkt-accent': '#D47324',
+    '--apkt-border-radius-master': '12px',
+    '--apkt-font-family': "'Söhne', -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+  },
 })
